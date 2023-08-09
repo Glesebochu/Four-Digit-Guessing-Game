@@ -1,13 +1,13 @@
 .MODEL medium
 
-;*************************************************************
+;***********************************************************************
 ; Data segment of the program.
-;*************************************************************
+;***********************************************************************
 DATA SEGMENT
 
-    ;=========================================================
+    ;===================================================================
     ; Constants
-    ;=========================================================
+    ;===================================================================
     DATA_CONSTANTS SEGMENT
         ; The maximum number of guesses allowed.
         max_guess_count EQU 10
@@ -18,9 +18,9 @@ DATA SEGMENT
         ; The width of each column on the display table.
         col_width EQU 7
     DATA_CONSTANTS ENDS
-    ;=========================================================
+    ;===================================================================
     ; Arrays
-    ;=========================================================
+    ;===================================================================
     DATA_ARRAYS SEGMENT
         ; An array to store all the guesses the user has previously made.
             /*
@@ -56,29 +56,26 @@ DATA SEGMENT
         P_scores DB 13 dup(?)
     DATA_ARRAYS ENDS
 
-    ;=========================================================
+    ;===================================================================
     ; Variables
-    ;=========================================================
+    ;===================================================================
     DATA_VARIABLES SEGMENT
         ; A variable to store the user's current guess.
-        guess_string DW 0
+        user_guess DW 1
 
         ; A variable to store the magic number.
-        magic_string DW 0
+        magic_number DW 1
 
         ; A variable for storing the number of guesses the user has made.
-        guess_count DW 0
+        guess_count DB 1
 
         ; A variable that holds information about whether or not the number has been found.
-        found DW "true", 0
+        found DW "True$"
 
-        ; A variable that holds information about whether or not the user's guess or the 
-        ; randomly generated number is valid.
-        valid_number DW "true", 0
     DATA_VARIABLES ENDS
-    ;=========================================================
+    ;===================================================================
     ; Text
-    ;=========================================================
+    ;===================================================================
     DATA_TEXT SEGMENT
         display_text_1 DW "Hello! Welcome to our number guessing game!", 0
         display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.", 0
@@ -92,11 +89,11 @@ DATA SEGMENT
 
 DATA ENDS
 
-;*************************************************************
+;***********************************************************************
 ; Code segment of the program.
-;*************************************************************
+;***********************************************************************
 CODE SEGMENT
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Import all the necessary procedures.
     EXTERN pseudo_random_number_generator
     EXTERN calculate_N
@@ -104,38 +101,79 @@ CODE SEGMENT
     EXTERN table_generator
     EXTERN validate_number
 
+    ;-------------------------------------------------------------------
     ; Define data segment.
-    MOV ax, @data
-    MOV ds, ax 
+    MOV AX, @data
+    MOV DS, AX 
 
-    ;---------------------------------------------------------
-    ; Generate a valid random number.
+    ;-------------------------------------------------------------------
+    ; Generate a valid random number and store it on "magic_number."
+    validating_random_number_loop:
+        ; Generate a random number. The generated number is stored on DX.
+        CALL pseudo_random_number_generator
 
-    ;---------------------------------------------------------
+        ; Check if the random number is valid.
+        CALL valid_number
+
+        ; Check if the "valid_number" procedure returned true.
+        CMP AX, "True"
+        
+        ; Do the loop again if the number is not valid.
+        JNZ validating_random_number_loop
+
+    MOV magic_number, DX
+    ;-------------------------------------------------------------------
     ; Display the rules of the game.
+    MOV DX, display_text_1
+    CALL print_string
+    MOV DX, display_text_2
+    CALL print_string
+    MOV DX, display_text_3
+    CALL print_string
+    MOV DX, display_text_4
+    CALL print_string
+    MOV DX, display_text_5
+    CALL print_string
+    MOV DX, display_text_6
+    CALL print_string
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Take input from the user and validate it.
+    validating_user_guess_loop:
+        
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Add the user's guess to the "all_guesses."
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Compare the user's guess with the magic number.
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Display a history of all the user's guesses and their scores.
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Check if the number has been found.
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; Increment "guess_count."
 
 
-    ;---------------------------------------------------------
+    ;-------------------------------------------------------------------
     ; End the program.
     MOV ah, 4Ch
     INT 21h
+
+    ;===================================================================
+    ; Custom procedures.
+    ;===================================================================
+    CODE_CUSTOM_PROCS SEGMENT
+        ; A custom procedure for easily printing text out on the screen.
+        print_string PROC
+            MOV AH, 09h
+            INT 21h
+            RET
+        print_string ENDP
+
+    CODE_CUSTOM_PROCS ENDS
 
 CODE ENDS

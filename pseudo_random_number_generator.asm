@@ -8,7 +8,7 @@
     ARBITRARY_NUM_2 equ 0xAAA5h
 
 .CODE
-    main PROC
+    pseudo_random_number_generator PROC
         MOV AX, @DATA
         MOV DS, AX
 
@@ -16,10 +16,10 @@
 
         CALL GenerateRandomNumber  
 
-        MOV AH, 4Ch
-        INT 21h
+        MOV DX, random_number
+        RET
 
-    main ENDP
+    pseudo_random_number_generator ENDP
 
 
     InitializeRandom PROC  ; Initializing the random number generator with the system time as the seed value
@@ -50,14 +50,14 @@
         XOR AX, ARBITRARY_NUM_2    
         SHR AX, 7          
 
-        ; Dividing the remainder by 9000 to obtain a 4-digit random number between 1000 and 9999
+        ; Dividing the repseudo_random_number_generatorder by 9000 to obtain a 4-digit random number between 1000 and 9999
         MOV BX, 9000
-        DIV BX  ; DX:AX = DX:AX / BX (remainder will be stored in AX)
+        DIV BX  ; DX:AX = DX:AX / BX (repseudo_random_number_generatorder will be stored in AX)
 
-        ADD AX, 1000  ; AddING 1000 to the remainder to get a number between 1000 and 9999
+        ADD AX, 1000  ; AddING 1000 to the repseudo_random_number_generatorder to get a number between 1000 and 9999
         MOV random_number, AX
 
         RET
     GenerateRandomNumber ENDP
 
-END main
+END pseudo_random_number_generator
