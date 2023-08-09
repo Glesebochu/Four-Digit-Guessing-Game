@@ -70,21 +70,27 @@ DATA SEGMENT
         guess_count DB 1
 
         ; A variable that holds information about whether or not the number has been found.
-        found DW "True$"
+        found DW "False$"
 
     DATA_VARIABLES ENDS
     ;===================================================================
     ; Text
     ;===================================================================
     DATA_TEXT SEGMENT
-        display_text_1 DW "Hello! Welcome to our number guessing game!", 0
-        display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.", 0
-        display_text_3 DW "Rules of the game -You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.", 0
-        display_text_4 DW "N tells you how many digits you guessed correctly.", 0
-        display_text_5 DW "P tells you how many of the correctly guessed digits are in the right position.", 0
-        display_text_6 DW "The goal is to get a score of 4 for both N and P", 0
-        display_text_7 DW "CONGRATS! You have found the number.", 0
-        display_text_7 DW "You've reached the maximum of 20 guesses. Try again, sletebelah(sh).", 0
+        ; Rules and overall explanation.
+        display_text_1 DW "Hello! Welcome to our number guessing game!$"
+        display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.$"
+        display_text_3 DW "Rules of the game -You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.$"
+        display_text_4 DW "N tells you how many digits you guessed correctly.$"
+        display_text_5 DW "P tells you how many of the correctly guessed digits are in the right position.$"
+        display_text_6 DW "The goal is to get a score of 4 for both N and P$"
+
+        ; During interaction with the user.
+        display_text_7 DW "Enter a four digit number: $"
+        display_text_8 DW "Invalid. Try again.$"
+
+        display_text_9 DW "CONGRATS! You have found the number.$"
+        display_text_10 DW "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
     DATA_TEXT ENDS
 
 DATA ENDS
@@ -112,56 +118,138 @@ CODE SEGMENT
         ; Generate a random number. The generated number is stored on DX.
         CALL pseudo_random_number_generator
 
-        ; Check if the random number is valid.
-        CALL valid_number
+        ; Check if the random number (stored in DX) is valid.
+        CALL validate_number
 
-        ; Check if the "valid_number" procedure returned true.
+        ; Check if the "validate_number" procedure returned true.
         CMP AX, "True"
         
         ; Do the loop again if the number is not valid.
         JNZ validating_random_number_loop
 
     MOV magic_number, DX
+    
     ;-------------------------------------------------------------------
     ; Display the rules of the game.
-    MOV DX, display_text_1
+    LEA DX, display_text_1 + 2
     CALL print_string
-    MOV DX, display_text_2
+    LEA DX, display_text_2 + 2
     CALL print_string
-    MOV DX, display_text_3
+    LEA DX, display_text_3 + 2
     CALL print_string
-    MOV DX, display_text_4
+    LEA DX, display_text_4 + 2
     CALL print_string
-    MOV DX, display_text_5
+    LEA DX, display_text_5 + 2
     CALL print_string
-    MOV DX, display_text_6
+    LEA DX, display_text_6 + 2
     CALL print_string
 
     ;-------------------------------------------------------------------
-    ; Take input from the user and validate it.
-    validating_user_guess_loop:
+    ; Loop the game until the number is found or the maximum guess count is reached.
+    game_loop:
+        ;-------------------------------------------------------------------
+        ; Take input from the user and validate it.
+        validating_user_guess_loop:
+            ; Display the prompt.
+            LEA DX, display_text_7 + 2
+            CALL print_string
+
+            ; Take the user's guess and store it in "user_guess."
+            MOV DX, offset user_guess
+            MOV AH, 0Ah
+            INT 21h
+
+            ; Store a copy of the user's guess on DX so that the "validate_number" procedure can access it.
+            MOV DX, user_guess
+            CALL validate_number
+
+            ; Check if the "validate_number" procedure returned true.
+            CMP AX, "True"
+
+            ; Display error message if the number isn't valid.
+            JNZ invalid_user_guess
+            
+            ; Do the loop again if the number is not valid.
+            JMP validating_user_guess_loop
+
+        ; A display message for when the user's guess is invalid.
+        invalid_user_guess:
+            LEA DX, display_text_8 + 2
+            CALL print_string
+            RET
         
+        ;-------------------------------------------------------------------
+        ; Add the user's guess to "all_guesses."
+        MOV SI, offset guesses
+        ADD SI, guess_count
+        MOV BYTE PTR [SI], user_guess
 
-    ;-------------------------------------------------------------------
-    ; Add the user's guess to the "all_guesses."
+        ;-------------------------------------------------------------------
+        ; Compare the user's guess with the magic number.
+        ; The magic number is stored in BX so that calculate_N and calculate_P can access it.
+        MOV BX, magic_number
 
-    ;-------------------------------------------------------------------
-    ; Compare the user's guess with the magic number.
+        ; Calculate the N score and store it in AX.
+        MOV DX, user_guess
+        CALL calculate_N
 
-    ;-------------------------------------------------------------------
-    ; Display a history of all the user's guesses and their scores.
+        ; Add the N score to the N_scores array.
+        MOV SI, offset N_scores
+        ADD SI, guess_count
+        MOV BYTE PTR [SI], AX
 
-    ;-------------------------------------------------------------------
-    ; Check if the number has been found.
+        ; Calculate the P score and store it in AX.
+        MOV DX, user_guess
+        CALL calculate_P
+        
+        ; Add the P score to the P_scores array.
+        MOV SI, offset P_scores
+        ADD SI, guess_count
+        MOV BYTE PTR [SI], AX
+        
+        ;-------------------------------------------------------------------
+        ; Display a history of all the user's guesses and their scores.
 
-    ;-------------------------------------------------------------------
-    ; Increment "guess_count."
+        MOV AX, offset guesses
+        MOV BX, offset N_scores
+        MOV CX, offset P_scores
 
+        CALL table_generator
 
+        ;-------------------------------------------------------------------
+        ; Check if the number has been found.
+        CMP 4, N_scores[guess_count]
+        JZ correct_label
+
+        correct_label:
+            CMP 4, P_scores[guess_count]
+            JZ found_label
+
+        found_label:
+            MOV found, "True"
+            LEA DX, display_text_9 + 2
+            CALL print_string
+            JMP end_program_label
+
+        ;-------------------------------------------------------------------
+        ; Increment "guess_count" and check if the maximum number of guesses 
+        ; has been reached.
+        INC guess_count
+        CMP guess_count, max_guess_count
+        JZ maximum_guesses_label
+
+        maximum_guesses_label:
+            LEA DX, display_text_10 + 2
+            CALL print_string
+            JMP end_program_label
+
+        JMP game_loop
+    
     ;-------------------------------------------------------------------
     ; End the program.
-    MOV ah, 4Ch
-    INT 21h
+    end_program_label:
+        MOV ah, 4Ch
+        INT 21h
 
     ;===================================================================
     ; Custom procedures.
@@ -173,6 +261,17 @@ CODE SEGMENT
             INT 21h
             RET
         print_string ENDP
+
+        ; A custom procedure for easily finding the size of an array.
+        ; find_array_size:
+        ;     CMP BYTE PTR [array+SI], 0   ; Check if element is null
+        ;     JE return_to_caller
+        ;     INC SI                        ; Move to the next element
+        ;     INC CX                        ; Increment count
+        ;     JMP find_array_size
+
+        ; return_to_caller:
+        ;     RET
 
     CODE_CUSTOM_PROCS ENDS
 
