@@ -13,7 +13,7 @@
     prompt db 'Enter a number: $' 
     warning db 10,13,10,13, 'The number you enterd has alpha numeric value $'  
     warning1 db 10,13,10,13, 'The number you enterd has repeating value $' 
-    accepted db 10,13,10,13, 'You have successfuly entered a number $' 
+    accepted db 10,13,10,13, 'You have successfully entered a number $' 
 
 .code
 main proc
