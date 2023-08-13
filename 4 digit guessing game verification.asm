@@ -13,7 +13,7 @@
     prompt db 'Enter a number: $' 
     warning db 10,13,10,13, 'The number you enterd has alpha numeric value $'  
     warning1 db 10,13,10,13, 'The number you enterd has repeating value $' 
-    accepted db 10,13,10,13, 'You have successfully entered a number $' 
+    accepted db 10,13,10,13, 'You have successfuly entered a number $' 
 
 .code
 main proc
@@ -57,55 +57,57 @@ main proc
     
     non_numeric:
         mov ax,'0'
-    	lea dx, warning 
-    	mov ah, 09h
-    	int 21h
+    	;lea dx, warning 
+    	;mov ah, 09h
+    	;int 21h
         jmp end_program
      
     ;check repaeating digits 
     
+     
+    xor dl,dl 
     mov cx, 3
     lea si, user_guess_number_buffer
     mov al, [si]
-    add al, '0'
-    xor dl,dl 
+    ;add al, '0' ;opptional if you want to compare ASCII values add it 
     mov dl,al
     check_repeating_degit: 
         inc si
         mov al, [si]
-        add al, '0'
+        ;add al, '0'
         cmp al,dl
         je repeat_s
-        mov dl,al
-        
-        
-    loop check_repeating_degit
-     accurate:
+        mov dl,al 
+    loop check_repeating_degit 
+     
+    accurate:
         mov ax,'1'
-        lea dx, accepted
-        mov ah, 09h
-        int 21h    
+        ;lea dx, accepted
+        ;mov ah, 09h
+        ;int 21h    
         jmp end_program    
 
     repeat_s:
         mov ax,'0'
-        lea dx, warning1
-        mov ah, 09h
-        int 21h
+        ;lea dx, warning1
+        ;mov ah, 09h
+        ;int 21h
         jmp end_program    
     
+    
+    
+    
+     ;a custom procedure to exit the program 
+    end_program:
+    mov ah, 4Ch
+    int 21h  
     
      ;a custom procedure to display a string  
     printstring:
     mov ah, 09h 
     int 21h     
     ret       
-    
-    
-     ;a custom procedure to exit the program 
-    end_program:
-    mov ah, 4Ch
-    int 21h                                                                                  
+                                                                                    
  
 end main
 endp 
