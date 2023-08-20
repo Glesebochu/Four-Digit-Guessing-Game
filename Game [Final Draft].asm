@@ -104,205 +104,207 @@ ENDS DATA
 ; Code segment of the program.
 ;***********************************************************************
 CODE SEGMENT
-    ;-------------------------------------------------------------------
-    ; Define data segment.
-    MOV AX, @DATA
-    MOV DS, AX 
 
-    ;-------------------------------------------------------------------
-    ; Generate a valid random number and store it on "magic_number."
-    validating_random_number_loop:
-        ; Generate a random number. The generated number is stored on DX.
-        CALL pseudo_random_number_generator
-
-        ; Copy the values in 'random_number' to 'to_be_validated.'
-        LEA DI, to_be_validated
-        LEA SI, random_number
-        CALL make_duplicate
-
-        ; Check if the random number (stored in to_be_validated) is valid.
-        CALL validate_number
-
-        ; Check if the "validate_number" procedure returned true (1).
-        CMP is_valid, 1
-        
-        ; Do the loop again if the number is not valid.
-        JNE validating_random_number_loop
-
-    ; Copy the values in 'to_be_validated' to 'magic_number.'
-    LEA DI, magic_number
-    LEA SI, to_be_validated
-    CALL make_duplicate
-    
-    ;-------------------------------------------------------------------
-    ; Display the rules of the game.
-    LEA DX, display_text_1
-    CALL print_string
-    LEA DX, display_text_2
-    CALL print_string
-    LEA DX, display_text_3
-    CALL print_string
-    LEA DX, display_text_4
-    CALL print_string
-    LEA DX, display_text_5
-    CALL print_string
-    LEA DX, display_text_6
-    CALL print_string
-
-    ;-------------------------------------------------------------------
-    ; Loop the game until the number is found or the maximum guess count is reached.
-    game_loop:
+    main PROC
         ;-------------------------------------------------------------------
-        ; Take input from the user and validate it.
-        validating_user_guess_loop:
-            ; Display the prompt.
-            LEA DX, display_text_7
-            CALL print_string
+        ; Define data segment.
+        MOV AX, @DATA
+        MOV DS, AX 
 
-            ; Take the user's guess and store it in "user_guess."
-            LEA SI, user_guess
-            ; Set the starting value for the counter register to 4.
-            ; This is the number of characters we want to take from the user.
-            MOV CX, 4
-            input_loop:
-                ; Take the "character input instruction" to AH.
-                MOV AH, 01h 
-                INT 21h
-                ; Change whatever character was in AL to an actual integer.
-                SUB AL, '0'
-                ; Store that integer to the memory location specified by the address in SI.
-                MOV [SI], AL
-                INC SI
-                ; Each LOOP instruction decrements CX by 1.
-                LOOP input_loop
+        ;-------------------------------------------------------------------
+        ; Generate a valid random number and store it on "magic_number."
+        validating_random_number_loop:
+            ; Generate a random number. The generated number is stored on DX.
+            CALL pseudo_random_number_generator
 
-            ; Store a copy of the user's guess on 'to_be_validated' so that "validate_number" can access it.
-            LEA SI, user_guess
+            ; Copy the values in 'random_number' to 'to_be_validated.'
             LEA DI, to_be_validated
+            LEA SI, random_number
             CALL make_duplicate
+
+            ; Check if the random number (stored in to_be_validated) is valid.
             CALL validate_number
 
-            ; Check if the "validate_number" procedure returned true.
+            ; Check if the "validate_number" procedure returned true (1).
             CMP is_valid, 1
+            
+            ; Do the loop again if the number is not valid.
+            JNE validating_random_number_loop
 
-            ; Display error message if the number isn't valid.
-            JNE invalid_user_guess
+        ; Copy the values in 'to_be_validated' to 'magic_number.'
+        LEA DI, magic_number
+        LEA SI, to_be_validated
+        CALL make_duplicate
+        
+        ;-------------------------------------------------------------------
+        ; Display the rules of the game.
+        LEA DX, display_text_1
+        CALL print_string
+        LEA DX, display_text_2
+        CALL print_string
+        LEA DX, display_text_3
+        CALL print_string
+        LEA DX, display_text_4
+        CALL print_string
+        LEA DX, display_text_5
+        CALL print_string
+        LEA DX, display_text_6
+        CALL print_string
 
-            ; A display message for when the user's guess is invalid.
-            invalid_user_guess:
-                LEA DX, display_text_8
+        ;-------------------------------------------------------------------
+        ; Loop the game until the number is found or the maximum guess count is reached.
+        game_loop:
+            ;-------------------------------------------------------------------
+            ; Take input from the user and validate it.
+            validating_user_guess_loop:
+                ; Display the prompt.
+                LEA DX, display_text_7
                 CALL print_string
 
-                ; Do the loop again if the number is not valid.
-                JNE validating_user_guess_loop
+                ; Take the user's guess and store it in "user_guess."
+                LEA SI, user_guess
+                ; Set the starting value for the counter register to 4.
+                ; This is the number of characters we want to take from the user.
+                MOV CX, 4
+                input_loop:
+                    ; Take the "character input instruction" to AH.
+                    MOV AH, 01h 
+                    INT 21h
+                    ; Change whatever character was in AL to an actual integer.
+                    SUB AL, '0'
+                    ; Store that integer to the memory location specified by the address in SI.
+                    MOV [SI], AL
+                    INC SI
+                    ; Each LOOP instruction decrements CX by 1.
+                    LOOP input_loop
 
-        ;-------------------------------------------------------------------
-        ; Add the user's guess to "all_guesses."
+                ; Store a copy of the user's guess on 'to_be_validated' so that "validate_number" can access it.
+                LEA SI, user_guess
+                LEA DI, to_be_validated
+                CALL make_duplicate
+                CALL validate_number
 
-        ; Our own technique.
-        LEA SI, user_guess
-        LEA DI, all_guesses
-        mov AL, guess_count
-        mov AH, 0
-        add DI, AX
-        CALL make_duplicate
+                ; Check if the "validate_number" procedure returned true.
+                CMP is_valid, 1
 
+                ; Display error message if the number isn't valid.
+                JNE invalid_user_guess
 
-        ; MOV AX, 4
-        ; MUL guess_count
-        ; LEA DI, all_guesses + AX
-        ; CALL make_duplicate
+                ; A display message for when the user's guess is invalid.
+                invalid_user_guess:
+                    LEA DX, display_text_8
+                    CALL print_string
 
-        ; From stack overflow.
-            ; LEA DI, all_guesses
-            ; mov AL, guess_count
-            ; mov AH, 0
-            ; add DI, AX
-            ; MOV BYTE PTR [DI], user_guess
+                    ; Do the loop again if the number is not valid.
+                    JNE validating_user_guess_loop
 
+            ;-------------------------------------------------------------------
+            ; Add the user's guess to "all_guesses."
 
-
-        ;-------------------------------------------------------------------
-        ; Compare the user's guess with the magic number.
-        ; The magic number is stored in BX so that calculate_N and calculate_P can access it.
-        MOV BX, magic_number
-
-        ; Calculate the N score and store it in BH.
-        CALL calculate_N
-
-        ; Add the N score of this particlar guess to 'N_scores.'
-        LEA DI, N_scores
-        mov AL, guess_count
-        mov AH, 0
-        add DI, AX
-        MOV [DI], bh
+            ; Our own technique.
+            LEA SI, user_guess
+            LEA DI, all_guesses
+            mov AL, guess_count
+            mov AH, 0
+            add DI, AX
+            CALL make_duplicate
 
 
-        ; From stack overflow.
-        ; MOV SI, offset N_scores
-        ; ADD SI, guess_count
-        ; MOV BYTE PTR [SI], BH
+            ; MOV AX, 4
+            ; MUL guess_count
+            ; LEA DI, all_guesses + AX
+            ; CALL make_duplicate
 
-        ; Calculate the P score and store it in BL.
-        CALL calculate_P
-        
-        ; Add the P score to the P_scores array.
-        LEA DI, P_scores
-        mov AL, guess_count
-        mov AH, 0
-        add DI, AX
-        MOV [DI], bl
-        
-        ;-------------------------------------------------------------------
-        ; Display a history of all the user's guesses and their scores.
+            ; From stack overflow.
+                ; LEA DI, all_guesses
+                ; mov AL, guess_count
+                ; mov AH, 0
+                ; add DI, AX
+                ; MOV BYTE PTR [DI], user_guess
 
-        CALL table_generator
 
-        ;-------------------------------------------------------------------
-        ; Check if the number has been found.
-        LEA SI, N_scores
-        MOV AL, guess_count
-        MOV AH, 0
-        ADD SI, AX
-        CMP [SI], 4
-        JE correct_N_label
 
-        correct_N_label:
-            LEA SI, P_scores
+            ;-------------------------------------------------------------------
+            ; Compare the user's guess with the magic number.
+            ; The magic number is stored in BX so that calculate_N and calculate_P can access it.
+            MOV BX, magic_number
+
+            ; Calculate the N score and store it in BH.
+            CALL calculate_N
+
+            ; Add the N score of this particlar guess to 'N_scores.'
+            LEA DI, N_scores
+            mov AL, guess_count
+            mov AH, 0
+            add DI, AX
+            MOV [DI], bh
+
+
+            ; From stack overflow.
+            ; MOV SI, offset N_scores
+            ; ADD SI, guess_count
+            ; MOV BYTE PTR [SI], BH
+
+            ; Calculate the P score and store it in BL.
+            CALL calculate_P
+            
+            ; Add the P score to the P_scores array.
+            LEA DI, P_scores
+            mov AL, guess_count
+            mov AH, 0
+            add DI, AX
+            MOV [DI], bl
+            
+            ;-------------------------------------------------------------------
+            ; Display a history of all the user's guesses and their scores.
+
+            CALL table_generator
+
+            ;-------------------------------------------------------------------
+            ; Check if the number has been found.
+            LEA SI, N_scores
             MOV AL, guess_count
             MOV AH, 0
             ADD SI, AX
             CMP [SI], 4
-            JE found_label
-            JNE increment_guess_count_label
+            JE correct_N_label
 
-        found_label:
-            MOV found, 1
-            LEA DX, display_text_9
-            CALL print_string
-            JMP end_program_label
+            correct_N_label:
+                LEA SI, P_scores
+                MOV AL, guess_count
+                MOV AH, 0
+                ADD SI, AX
+                CMP [SI], 4
+                JE found_label
+                JNE increment_guess_count_label
 
+            found_label:
+                MOV found, 1
+                LEA DX, display_text_9
+                CALL print_string
+                JMP end_program_label
+
+            ;-------------------------------------------------------------------
+            ; Increment "guess_count" and check if the maximum number of guesses 
+            ; has been reached.
+            increment_guess_count_label:
+                INC guess_count
+                CMP guess_count, max_guess_count
+                JE maximum_guesses_label
+
+            maximum_guesses_label:
+                LEA DX, display_text_10
+                CALL print_string
+                JMP end_program_label
+
+            JMP game_loop
+        
         ;-------------------------------------------------------------------
-        ; Increment "guess_count" and check if the maximum number of guesses 
-        ; has been reached.
-        increment_guess_count_label:
-            INC guess_count
-            CMP guess_count, max_guess_count
-            JE maximum_guesses_label
-
-        maximum_guesses_label:
-            LEA DX, display_text_10
-            CALL print_string
-            JMP end_program_label
-
-        JMP game_loop
-    
-    ;-------------------------------------------------------------------
-    ; End the program.
-    end_program_label:
-        MOV AH, 4Ch
-        INT 21h
-
+        ; End the program.
+        end_program_label:
+            MOV AH, 4Ch
+            INT 21h
+    main ENDP
     ;===================================================================
     ; Custom procedures.
     ;===================================================================
@@ -651,4 +653,4 @@ CODE SEGMENT
 
     ENDS CODE_CUSTOM_PROCS
 
-ENDS CODE
+ENDS CODE main
