@@ -223,23 +223,27 @@ CODE SEGMENT
         ; The magic number is stored in BX so that calculate_N and calculate_P can access it.
         MOV BX, magic_number
 
-        ; Calculate the N score and store it in AX.
-        MOV DX, user_guess
+        ; Calculate the N score and store it in BH.
         CALL calculate_N
 
-        ; Add the N score to the N_scores array.
-        MOV SI, offset N_scores
-        ADD SI, guess_count
-        MOV BYTE PTR [SI], AX
+        ; Add the N score of this particlar guess to 'N_scores.'
+        ; Our own method.
+        LEA SI, N_scores
+        MOV AX, guess_count
+        MOV BYTE [SI + AX], BH
 
-        ; Calculate the P score and store it in AX.
-        MOV DX, user_guess
+        ; From stack overflow.
+        ; MOV SI, offset N_scores
+        ; ADD SI, guess_count
+        ; MOV BYTE PTR [SI], BH
+
+        ; Calculate the P score and store it in BL.
         CALL calculate_P
         
         ; Add the P score to the P_scores array.
-        MOV SI, offset P_scores
+        LEA SI, P_scores
         ADD SI, guess_count
-        MOV BYTE PTR [SI], AX
+        MOV BYTE PTR [SI], BL
         
         ;-------------------------------------------------------------------
         ; Display a history of all the user's guesses and their scores.
@@ -478,11 +482,13 @@ CODE SEGMENT
             mov cx, 4
 
             check_existance:
+
                 mov al, [si] ; al = 4
                 cmp al, [di] ; 4 == 1 => false
                 je increment_N
 
                 ; save the previous value of the cx register to prevent cx from being rest 
+                push si
                 push cx
 
                 lea si, magic_number
@@ -493,10 +499,10 @@ CODE SEGMENT
                 cmp al, [si]
                 je increment_N_val
                 inc si
-                loop compare_current_input_loop
+            loop compare_current_input_loop
+            jmp continue_N_comparison
 
             increment_N_val:
-                pop cx
                 inc bh
                 jmp continue_N_comparison
 
@@ -505,6 +511,8 @@ CODE SEGMENT
                 jmp continue_N_comparison
 
             continue_N_comparison:
+                pop cx
+                pop si
                 inc si      ; Move to the next digit in user_guess
                 inc di      ; Move to the next digit in magic_number
                 loop check_existance
