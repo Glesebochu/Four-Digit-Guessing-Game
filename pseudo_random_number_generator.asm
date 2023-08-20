@@ -1,5 +1,5 @@
-.MODEL small
-.STACK 100h
+; .MODEL small
+; .STACK 100h
 
 .DATA  
     seed DW 0
@@ -9,8 +9,8 @@
 
 .CODE
     pseudo_random_number_generator PROC
-        MOV AX, @DATA
-        MOV DS, AX
+        ; MOV AX, @DATA
+        ; MOV DS, AX
 
         CALL InitializeRandom  
 

@@ -30,35 +30,23 @@ DATA SEGMENT
         ; An array to store all the guesses the user has previously made.
             /*
             Size Calculation
-            1 byte for holding how many elements the array can hold at max capacity.
-            1 byte for holding how much of the memory space given to the array is actually occupied.
-            1 byte for holding the terminating symbol.
-            4 bytes for holding each guess. 4 x 10 (for all the possible guesses) = 40 bytes = 20 words.
-            (1 + 1 + 1) bytes + 20 words = 22 words.
+            4 bytes for holding each guess. 4 x 10 (for all the possible guesses) = 40 bytes.
             */
-        all_guesses DW 22 dup(?)
+        all_guesses DB 40 dup(?)
 
         ; An array to store all the N scores of each guess.
             /*
             Size Calculation
-            1 byte for holding how many elements the array can hold at max capacity.
-            1 byte for holding how much of the memory space given to the array is actually occupied.
-            1 byte for holding the terminating symbol.
             1 byte for holding each N score. 1 x 10 (for all the possible guesses) = 10 bytes.
-            (1 + 1 + 1 + 10) bytes = 13 bytes.
             */
-        N_scores DB 13 dup(?)
+        N_scores DB 10 dup(?)
 
         ; An array to store all the P scores of each guess.
             /*
             Size Calculation
-            1 byte for holding how many elements the array can hold at max capacity.
-            1 byte for holding how much of the memory space given to the array is actually occupied.
-            1 byte for holding the terminating symbol.
             1 byte for holding each P score. 1 x 10 (for all the possible guesses) = 10 bytes.
-            (1 + 1 + 1 + 10) bytes = 13 bytes.
             */
-        P_scores DB 13 dup(?)
+        P_scores DB 10 dup(?)
     DATA_ARRAYS ENDS
 
     ;===================================================================
@@ -75,21 +63,28 @@ DATA SEGMENT
         guess_count DB 1
 
         ; A variable that holds information about whether or not the number has been found.
-        found DW "False$"
+        found DB 0
+
+        ; A variable that holds information about whether or not a number is valid.
+        is_valid DB 0
 
         ; A variable for storing a number before it is validated.
             ;store the input of max 5 characters + '$' terminator
-        to_be_validated DB 10    
+        to_be_validated DW 1   
+
+        ; For checking if there are repeating digits in the number to be validated.
+        to_be_validated_duplicate DW 1
 
         ; For the pseudo random number generator.
         seed DW 0
-        random_number DW 0
+        random_number DW 1
 
         ; For the table generator.
         separator DB '//$'   
         header DB 'Guess|N//P$', 0;
 
     DATA_VARIABLES ENDS
+    
     ;===================================================================
     ; Text
     ;===================================================================
@@ -97,10 +92,10 @@ DATA SEGMENT
         ; Rules and overall explanation.
         display_text_1 DW "Hello! Welcome to our number guessing game!$"
         display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.$"
-        display_text_3 DW "Rules of the game -You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.$"
+        display_text_3 DW "Rules of the game - You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.$"
         display_text_4 DW "N tells you how many digits you guessed correctly.$"
         display_text_5 DW "P tells you how many of the correctly guessed digits are in the right position.$"
-        display_text_6 DW "The goal is to get a score of 4 for both N and P$"
+        display_text_6 DW "The goal is to get a score of 4 for both N and P.$"
 
         ; During interaction with the user.
         display_text_7 DW "Enter a four digit number: $"
@@ -117,16 +112,8 @@ DATA ENDS
 ;***********************************************************************
 CODE SEGMENT
     ;-------------------------------------------------------------------
-    ; Import all the necessary procedures.
-    ; INCLUDE pseudo_random_number_generator.asm
-    ; INCLUDE calculate_N.asm
-    ; INCLUDE calculate_P.asm
-    ; INCLUDE table_generator.asm
-    ; INCLUDE validate_number.asm
-
-    ;-------------------------------------------------------------------
     ; Define data segment.
-    MOV AX, @data
+    MOV AX, @DATA
     MOV DS, AX 
 
     ;-------------------------------------------------------------------
@@ -135,16 +122,24 @@ CODE SEGMENT
         ; Generate a random number. The generated number is stored on DX.
         CALL pseudo_random_number_generator
 
-        ; Check if the random number (stored in DX) is valid.
+        ; Copy the values in 'random_number' to 'to_be_validated.'
+        LEA DI, to_be_validated
+        LEA SI, random_number
+        CALL make_duplicate
+
+        ; Check if the random number (stored in to_be_validated) is valid.
         CALL validate_number
 
-        ; Check if the "validate_number" procedure returned true.
-        CMP AX, "True"
+        ; Check if the "validate_number" procedure returned true (1).
+        CMP is_valid, 1
         
         ; Do the loop again if the number is not valid.
-        JNZ validating_random_number_loop
+        JNE validating_random_number_loop
 
-    MOV magic_number, [DX]
+    ; Copy the values in 'to_be_validated' to 'magic_number.'
+    LEA DI, magic_number
+    LEA SI, to_be_validated
+    CALL make_duplicate
     
     ;-------------------------------------------------------------------
     ; Display the rules of the game.
@@ -172,9 +167,21 @@ CODE SEGMENT
             CALL print_string
 
             ; Take the user's guess and store it in "user_guess."
-            MOV DX, offset user_guess
-            MOV AH, 0Ah
-            INT 21h
+            LEA SI, user_guess
+            ; Set the starting value for the counter register to 4.
+            ; This is the number of characters we want to take from the user.
+            MOV CX, 4
+            input_loop:
+                ; Take the "character input instruction" to AH.
+                MOV AH, 01h 
+                INT 21h
+                ; Change whatever character was in AL to an actual integer.
+                SUB AL, '0'
+                ; Store that integer to the memory location specified by the address in SI.
+                MOV [SI], AL
+                INC SI
+                ; Each LOOP instruction decrements CX by 1.
+                LOOP input_loop
 
             ; Store a copy of the user's guess on DX so that the "validate_number" procedure can access it.
             MOV DX, user_guess
@@ -265,7 +272,7 @@ CODE SEGMENT
     ;-------------------------------------------------------------------
     ; End the program.
     end_program_label:
-        MOV ah, 4Ch
+        MOV AH, 4Ch
         INT 21h
 
     ;===================================================================
@@ -296,58 +303,108 @@ CODE SEGMENT
         ; find_array_size ENDP
 
         ;-------------------------------------------------------------------
+        ; Procedure for copying the values in one array to another.
+        ;-------------------------------------------------------------------
+        make_duplicate PROC
+            ; This takes whatever was specified by SI to DI.
+            MOV CX, 4
+            copy_loop:
+                MOV al, [si]
+                MOV [di], al
+                INC si
+                INC di
+                LOOP copy_loop
+        make_duplicate ENDP
+
+        ;-------------------------------------------------------------------
         ; Procedure for validating a number.
         ;-------------------------------------------------------------------
         validate_number PROC
-            ; Move the number to be validated to from DX to to_be_validated
-            mov to_be_validated, [dx]
+            LEA si, to_be_validated
+            MOV cx, 4
             
-            ; checks if the input value has greater than 4 characters excluding the end of line character if so returns false
-            
-            mov cl,[to_be_validated+1] ; Get the length of the input string    
-            dec cl  ; decrement cx by one to exclude the end of line character
-            cmp cl, 3 ;compare to check if the loop reached the end of the string
-            jg not_valid ;if greater than jump and call the not_valid procedure
+            ; Check if the user's input is actually a string of numbers.
+            check_loop:
+                MOV al, [si]
+                ADD al, '0'
+                CMP al, '0'
+                JL non_numeric
+                CMP al, '9'
+                jg non_numeric
+                INC si
 
-            ;checks if all the characters of the input value are digits if not returns false
-        
-            check_digit_characters: 
-                mov dl,[to_be_validated+2] ;set dl to the 1st character   
-                inc dl        
-                cmp dl,'0'              ; Check if it's a valid digit (ASCII '0' to '9')
-                jb not_valid              ; Jump if it's not a valid digit (before '0' in ASCII table)
-                cmp dl, '9'
-                ja not_valid              ; Jump if it's not a valid digit (after '9' in ASCII table)
+                LOOP check_loop
 
-            ;checks if the input value has repeating digits and if there are any returns false
-            mov di,bx ;initalizes the inner loop
+            ; Check if there are any repeating digits.
+            CALL check_repeating_degit
+
+            non_numeric:
+                MOV is_valid, 0
+                LEA DX, display_text_8
+                CALL print_string
+
+        validate_number ENDP 
+
+        check_repeating_digit PROC
+            lea si, to_be_validated
+
+            ; Make a duplicate of to_be_validated.
+            make_duplicate_label:
+                lea si, to_be_validated
+                lea di, to_be_validated_duplicate
+                copy_loop:
+                    mov al, [si]
+                    cmp al, 00
+                    je count_repeating_digits_label
+                    mov [di], al
+                    inc si
+                    inc di
+                    jmp copy_loop
+
+            ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
+            count_repeating_digits_label:
+                lea si, to_be_validated 
+                lea di, to_be_validated_duplicate
+                
+                check_if_to_be_validated_is_empty:
+                    mov ah, [si]
+                    cmp ah, 00
+                    je set_value_to_is_valid
+
+                actual_comparison_loop:
+                    mov al, [di]
+                    cmp al, 00
+                    je go_to_next_element_in_to_be_validated
+                    cmp ah, al
+                    je increment_if_same
+                    inc di
+                    jmp actual_comparison_loop
+
+                increment_if_same:
+                    inc bh
+                    inc di
+                    jmp actual_comparison_loop
+
+                go_to_next_element_in_to_be_validated:
+                    inc si
+                    lea di, to_be_validated_duplicate
+                    jmp check_if_to_be_validated_is_empty
+
+            ; Set the 'is_valid' variable to 0 or 1 representing false or true respectively.
+            set_value_to_is_valid:
+                cmp bh, 4
+                je no_repetitions_exist
+                jne repetitions_exist
+
+                no_repetitions_exist:
+                    mov is_valid, 1
+
+                repetitions_exist:
+                    mov is_valid, 0
             
-            check_repeating_digits_loop:
-                inc di                   ; Move to the next character
-                cmp di, #5               ; Check if we reached the end of the input string
-                jae valid                 ; If yes, the input is valid (no repeating digits)
-                mov ah, 0                 ; Clear AH to compare the two characters without shifting
-                mov al, [to_be_validated+2+bx] ; Get the first character for comparison
-                cmp al, [to_be_validated+2+di] ; Compare with the character at the next index
-                je not_valid              ; Jump if the characters are equal
-                jmp check_repeating_digits_loop ; Continue checking the rest of the characters until the terminator is reached
-                                                                                            
-            ;a custom procedure to exit the program 
-            end_program:
-                mov ah, 4Ch
-                int 21h                                                                                  
-            
-            ;a custom procedure to display "False" for invalid input
-            not_valid:
-                mov ax, 'False'
-                jmp end_program
-            
-            ;a custom procedure to display "True" for valid input
-            valid:
-                mov ax, 'True'
-                jmp end_program
-            
-        valid_number ENDP
+            RET
+
+        check_repeating_digit ENDP
 
         ;-------------------------------------------------------------------
         ; Procedures for generating a random number.
@@ -355,10 +412,7 @@ CODE SEGMENT
         pseudo_random_number_generator PROC
 
             CALL InitializeRandom  
-
             CALL GenerateRandomNumber  
-
-            MOV DX, random_number
             RET
 
         pseudo_random_number_generator ENDP
