@@ -69,7 +69,6 @@ DATA SEGMENT
         is_valid DB 0
 
         ; A variable for storing a number before it is validated.
-            ;store the input of max 5 characters + '$' terminator
         to_be_validated DW 1   
 
         ; For checking if there are repeating digits in the number to be validated.
@@ -368,14 +367,14 @@ CODE SEGMENT
             make_duplicate_label:
                 lea si, to_be_validated
                 lea di, to_be_validated_duplicate
-                copy_loop:
+                copy_loop_for_checker:
                     mov al, [si]
                     cmp al, 00
                     je count_repeating_digits_label
                     mov [di], al
                     inc si
                     inc di
-                    jmp copy_loop
+                    jmp copy_loop_for_checker
 
             ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
             count_repeating_digits_label:
