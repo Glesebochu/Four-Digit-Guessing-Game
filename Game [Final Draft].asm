@@ -364,7 +364,7 @@ CODE SEGMENT
                 LOOP check_loop
 
             ; Check if there are any repeating digits.
-            CALL check_repeating_degit
+            CALL check_repeating_digit
 
             non_numeric:
                 MOV is_valid, 0
