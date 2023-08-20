@@ -1,4 +1,4 @@
-.MODEL medium
+.MODEL large
 
 ;***********************************************************************
 ; Data segment of the program.
@@ -17,6 +17,11 @@ DATA SEGMENT
 
         ; The width of each column on the display table.
         col_width EQU 7
+
+        ; For the pseudo random number generator
+        ARBITRARY_NUM_1 equ 0x6C07h
+        ARBITRARY_NUM_2 equ 0xAAA5h
+        
     DATA_CONSTANTS ENDS
     ;===================================================================
     ; Arrays
@@ -72,6 +77,18 @@ DATA SEGMENT
         ; A variable that holds information about whether or not the number has been found.
         found DW "False$"
 
+        ; A variable for storing a number before it is validated.
+            ;store the input of max 5 characters + '$' terminator
+        to_be_validated DB 10    
+
+        ; For the pseudo random number generator.
+        seed DW 0
+        random_number DW 0
+
+        ; For the table generator.
+        separator DB '//$'   
+        header DB 'Guess|N//P$', 0;
+
     DATA_VARIABLES ENDS
     ;===================================================================
     ; Text
@@ -101,11 +118,11 @@ DATA ENDS
 CODE SEGMENT
     ;-------------------------------------------------------------------
     ; Import all the necessary procedures.
-    EXTERN pseudo_random_number_generator
-    EXTERN calculate_N
-    EXTERN calculate_P
-    EXTERN table_generator
-    EXTERN validate_number
+    ; INCLUDE pseudo_random_number_generator.asm
+    ; INCLUDE calculate_N.asm
+    ; INCLUDE calculate_P.asm
+    ; INCLUDE table_generator.asm
+    ; INCLUDE validate_number.asm
 
     ;-------------------------------------------------------------------
     ; Define data segment.
@@ -127,7 +144,7 @@ CODE SEGMENT
         ; Do the loop again if the number is not valid.
         JNZ validating_random_number_loop
 
-    MOV magic_number, DX
+    MOV magic_number, [DX]
     
     ;-------------------------------------------------------------------
     ; Display the rules of the game.
@@ -255,23 +272,296 @@ CODE SEGMENT
     ; Custom procedures.
     ;===================================================================
     CODE_CUSTOM_PROCS SEGMENT
-        ; A custom procedure for easily printing text out on the screen.
+        ;-------------------------------------------------------------------
+        ; Procedure for easily printing text out on the screen.
+        ;-------------------------------------------------------------------
         print_string PROC
             MOV AH, 09h
             INT 21h
             RET
         print_string ENDP
 
-        ; A custom procedure for easily finding the size of an array.
-        ; find_array_size:
+        ;-------------------------------------------------------------------
+        ; Procedure for easily finding the size of an array.
+        ;-------------------------------------------------------------------
+        ; find_array_size PROC
         ;     CMP BYTE PTR [array+SI], 0   ; Check if element is null
         ;     JE return_to_caller
         ;     INC SI                        ; Move to the next element
         ;     INC CX                        ; Increment count
         ;     JMP find_array_size
 
-        ; return_to_caller:
-        ;     RET
+        ;     return_to_caller:
+        ;         RET
+        ; find_array_size ENDP
+
+        ;-------------------------------------------------------------------
+        ; Procedure for validating a number.
+        ;-------------------------------------------------------------------
+        validate_number PROC
+            ; Move the number to be validated to from DX to to_be_validated
+            mov to_be_validated, [dx]
+            
+            ; checks if the input value has greater than 4 characters excluding the end of line character if so returns false
+            
+            mov cl,[to_be_validated+1] ; Get the length of the input string    
+            dec cl  ; decrement cx by one to exclude the end of line character
+            cmp cl, 3 ;compare to check if the loop reached the end of the string
+            jg not_valid ;if greater than jump and call the not_valid procedure
+
+            ;checks if all the characters of the input value are digits if not returns false
+        
+            check_digit_characters: 
+                mov dl,[to_be_validated+2] ;set dl to the 1st character   
+                inc dl        
+                cmp dl,'0'              ; Check if it's a valid digit (ASCII '0' to '9')
+                jb not_valid              ; Jump if it's not a valid digit (before '0' in ASCII table)
+                cmp dl, '9'
+                ja not_valid              ; Jump if it's not a valid digit (after '9' in ASCII table)
+
+            ;checks if the input value has repeating digits and if there are any returns false
+            mov di,bx ;initalizes the inner loop
+            
+            check_repeating_digits_loop:
+                inc di                   ; Move to the next character
+                cmp di, #5               ; Check if we reached the end of the input string
+                jae valid                 ; If yes, the input is valid (no repeating digits)
+                mov ah, 0                 ; Clear AH to compare the two characters without shifting
+                mov al, [to_be_validated+2+bx] ; Get the first character for comparison
+                cmp al, [to_be_validated+2+di] ; Compare with the character at the next index
+                je not_valid              ; Jump if the characters are equal
+                jmp check_repeating_digits_loop ; Continue checking the rest of the characters until the terminator is reached
+                                                                                            
+            ;a custom procedure to exit the program 
+            end_program:
+                mov ah, 4Ch
+                int 21h                                                                                  
+            
+            ;a custom procedure to display "False" for invalid input
+            not_valid:
+                mov ax, 'False'
+                jmp end_program
+            
+            ;a custom procedure to display "True" for valid input
+            valid:
+                mov ax, 'True'
+                jmp end_program
+            
+        valid_number ENDP
+
+        ;-------------------------------------------------------------------
+        ; Procedures for generating a random number.
+        ;-------------------------------------------------------------------
+        pseudo_random_number_generator PROC
+
+            CALL InitializeRandom  
+
+            CALL GenerateRandomNumber  
+
+            MOV DX, random_number
+            RET
+
+        pseudo_random_number_generator ENDP
+
+        ; Initializing the random number generator with the system time as the seed value
+        InitializeRandom PROC  
+            MOV AH, 2Ch  ; Getting system time
+            INT 21h
+
+            ; The system time is returned in CH (hours), CL (minutes), DH (seconds), and DL (milliseconds) and we combine them by shifting to set the seed value
+
+            MOV AX, CX
+            SHL AX, 8           
+            ADD AX, CX          
+            SHL AX, 8          
+            ADD AX, DX         
+            SHL AX, 8          
+            ADD AX, DX        
+
+            MOV seed, AX
+
+            RET
+        InitializeRandom ENDP
+
+        ; Generating the random 4-digit number using XORshift algorithm
+        GenerateRandomNumber PROC  
+            MOV AX, seed    
+
+            XOR AX, ARBITRARY_NUM_1     
+            SHL AX, 7           
+            XOR AX, ARBITRARY_NUM_2    
+            SHR AX, 7          
+
+            ; Dividing the repseudo_random_number_generatorder by 9000 to obtain a 4-digit random number between 1000 and 9999
+            MOV BX, 9000
+            DIV BX  ; DX:AX = DX:AX / BX (repseudo_random_number_generatorder will be stored in AX)
+
+            ADD AX, 1000  ; AddING 1000 to the repseudo_random_number_generatorder to get a number between 1000 and 9999
+            MOV random_number, AX
+
+            RET
+        GenerateRandomNumber ENDP
+
+        ;-------------------------------------------------------------------
+        ; Procedure for calculating the N score of the user's guess.
+        ;-------------------------------------------------------------------
+        calculate_N PROC
+            ; load the two arrays aaddress into the si and di register for looping
+            lea si, user_guess ; [4,3,2,1]
+            lea di, magic_number ; [1,2,3,4]
+
+            ; set your counter register
+            mov cx, 4
+
+            check_existance:
+                mov al, [si] ; al = 4
+                cmp al, [di] ; 4 == 1 => false
+                je increment_N
+
+                ; save the previous value of the cx register to prevent cx from being rest 
+                push cx
+
+                lea si, magic_number
+                mov cx, 4
+
+            ; check for the current users input in the rest of the magic's number array
+            compare_current_input_loop:
+                cmp al, [si]
+                je increment_N_val
+                inc si
+                loop compare_current_input_loop
+
+            increment_N_val:
+                pop cx
+                inc bh
+                jmp continue_N_comparison
+
+            increment_N:
+                inc bh
+                jmp continue_N_comparison
+
+            continue_N_comparison:
+                inc si      ; Move to the next digit in user_guess
+                inc di      ; Move to the next digit in magic_number
+                loop check_existance
+
+            ret
+        calculate_N ENDP
+
+        ;-------------------------------------------------------------------
+        ; Procedure for calculating the P score of the user's guess.
+        ;-------------------------------------------------------------------
+        calculate_P PROC
+            ; Compare the user's guess with the magic number 
+            lea si, user_guess
+            lea di, magic_number
+            mov cx, 4
+
+            compare_P_loop:
+                mov al, [si]
+                cmp al, [di]
+                je increment_P
+
+                ; Move to the next digit in user_guess and the magic number
+                inc si
+                inc di
+                loop compare_P_loop
+
+                ret
+
+            increment_P:
+                inc bl  
+                inc si  
+                inc di  
+                loop compare_P_loop
+
+                ret
+        calculate_P ENDP
+
+        ;-------------------------------------------------------------------
+        ; Procedure for drawing a table for displaying the user's past guesses.
+        ;-------------------------------------------------------------------
+        table_generator PROC  
+            LEA SI, all_guesses                                            
+            LEA BX, N_scores                                  
+            LEA DI, P_scores 
+
+            LEA dx, header
+            MOV ah, 9    
+            INT 21h  
+                    
+            ; Go to a new line
+            MOV DL, 0Dh     ; ASCII value for carriage return
+            MOV AH, 02h     
+            INT 21h
+
+            MOV DL, 0Ah     ; ASCII value for line feed
+            MOV AH, 02h     
+            INT 21h 
+            
+            PrintLoop:            
+                MOV CX, 0          
+            
+            LengthLoop:
+                CMP BYTE PTR [SI], '$'   ; Check if the current character is the string terminator
+                JE PrintString           ; If it is, jump to PrintString
+
+                INC SI                   ; Move to the next character
+                INC CX                   ; Increment the length counter
+                JMP LengthLoop           ; Repeat until the string terminator is found
+
+            PrintString:
+                MOV AH, 09h       ; Set AH to 09h for printing string
+                MOV DX, SI        ; Load the address of the current string into DX
+                SUB DX, CX        ; Subtract the length of the string from DX to get the starting address
+                INT 21h           
+                    
+            ;insert separator 
+            lea dx, separator
+            mov ah, 9    
+            int 21h
+            
+            ;the N array display            
+            MOV AL, [BX]        
+            ADD AL, 30h        
+            MOV DL, AL         
+
+            MOV AH, 02h        
+            INT 21h
+                
+            ;insert separator
+            lea dx, separator
+            mov ah, 9    
+            int 21h
+            
+            ;the P array diaplay      
+            MOV AL, [DI]        
+            ADD AL, 30h        
+            MOV DL, AL        
+
+            MOV AH, 02h        
+            INT 21h
+                            
+                            
+            ; Go to a new line
+            MOV DL, 0Dh     ; ASCII value for carriage return
+            MOV AH, 02h     
+            INT 21h
+
+            MOV DL, 0Ah     ; ASCII value for line feed
+            MOV AH, 02h    
+            INT 21h  
+            
+            ; Increment registers used to access the arrays.
+            INC DI
+            INC BX                          
+            INC SI            ; Move to the next string in the array
+
+            CMP BYTE PTR [SI], '$'   ; Check if the next character is the array terminator
+            JNE PrintLoop            ; If it is not, jump back to PrintLoop
+
+            RET
+        table_generator ENDP
 
     CODE_CUSTOM_PROCS ENDS
 
