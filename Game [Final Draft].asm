@@ -22,7 +22,7 @@ DATA SEGMENT
         ARBITRARY_NUM_1 equ 0x6C07h
         ARBITRARY_NUM_2 equ 0xAAA5h
         
-    DATA_CONSTANTS ENDS
+    ENDS DATA_CONSTANTS
     ;===================================================================
     ; Arrays
     ;===================================================================
@@ -41,7 +41,7 @@ DATA SEGMENT
             ; Size Calculation
             ; 1 byte for holding each P score. 1 x 10 (for all the possible guesses) = 10 bytes.
         P_scores DB 10 dup(?)
-    DATA_ARRAYS ENDS
+    ENDS DATA_ARRAYS
 
     ;===================================================================
     ; Variables
@@ -76,7 +76,7 @@ DATA SEGMENT
         separator DB '//$'   
         header DB 'Guess|N//P$', 0;
 
-    DATA_VARIABLES ENDS
+    ENDS DATA_VARIABLES
     
     ;===================================================================
     ; Text
@@ -96,9 +96,9 @@ DATA SEGMENT
 
         display_text_9 DW "CONGRATS! You have found the number.$"
         display_text_10 DW "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
-    DATA_TEXT ENDS
+    ENDS DATA_TEXT
 
-DATA ENDS
+ENDS DATA
 
 ;***********************************************************************
 ; Code segment of the program.
@@ -630,6 +630,6 @@ CODE SEGMENT
             RET
         table_generator ENDP
 
-    CODE_CUSTOM_PROCS ENDS
+    ENDS CODE_CUSTOM_PROCS
 
-CODE ENDS
+ENDS CODE
