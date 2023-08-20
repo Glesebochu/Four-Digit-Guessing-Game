@@ -28,24 +28,18 @@ DATA SEGMENT
     ;===================================================================
     DATA_ARRAYS SEGMENT
         ; An array to store all the guesses the user has previously made.
-            /*
-            Size Calculation
-            4 bytes for holding each guess. 4 x 10 (for all the possible guesses) = 40 bytes.
-            */
+            ; Size Calculation
+            ; 4 bytes for holding each guess. 4 x 10 (for all the possible guesses) = 40 bytes.
         all_guesses DB 40 dup(?)
 
         ; An array to store all the N scores of each guess.
-            /*
-            Size Calculation
-            1 byte for holding each N score. 1 x 10 (for all the possible guesses) = 10 bytes.
-            */
+            ; Size Calculation
+            ; 1 byte for holding each N score. 1 x 10 (for all the possible guesses) = 10 bytes.
         N_scores DB 10 dup(?)
 
         ; An array to store all the P scores of each guess.
-            /*
-            Size Calculation
-            1 byte for holding each P score. 1 x 10 (for all the possible guesses) = 10 bytes.
-            */
+            ; Size Calculation
+            ; 1 byte for holding each P score. 1 x 10 (for all the possible guesses) = 10 bytes.
         P_scores DB 10 dup(?)
     DATA_ARRAYS ENDS
 
