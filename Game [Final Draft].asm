@@ -8,7 +8,7 @@ DATA SEGMENT
     ;===================================================================
     ; Constants
     ;===================================================================
-    DATA_CONSTANTS SEGMENT
+    ; DATA_CONSTANTS SEGMENT
         ; The maximum number of guesses allowed.
         max_guess_count EQU 10
         
@@ -22,11 +22,11 @@ DATA SEGMENT
         ARBITRARY_NUM_1 equ 0x6C07h
         ARBITRARY_NUM_2 equ 0xAAA5h
         
-    ENDS DATA_CONSTANTS
+    ; ENDS DATA_CONSTANTS
     ;===================================================================
     ; Arrays
     ;===================================================================
-    DATA_ARRAYS SEGMENT
+    ; DATA_ARRAYS SEGMENT
         ; An array to store all the guesses the user has previously made.
             ; Size Calculation
             ; 4 bytes for holding each guess. 4 x 10 (for all the possible guesses) = 40 bytes.
@@ -41,12 +41,12 @@ DATA SEGMENT
             ; Size Calculation
             ; 1 byte for holding each P score. 1 x 10 (for all the possible guesses) = 10 bytes.
         P_scores DB 10 dup(?)
-    ENDS DATA_ARRAYS
+    ; ENDS DATA_ARRAYS
 
     ;===================================================================
     ; Variables
     ;===================================================================
-    DATA_VARIABLES SEGMENT
+    ; DATA_VARIABLES SEGMENT
         ; A variable to store the user's current guess.
         user_guess DW 1
 
@@ -76,12 +76,12 @@ DATA SEGMENT
         separator DB '//$'   
         header DB 'Guess|N//P$', 0;
 
-    ENDS DATA_VARIABLES
+    ; ENDS DATA_VARIABLES
     
     ;===================================================================
     ; Text
     ;===================================================================
-    DATA_TEXT SEGMENT
+    ; DATA_TEXT SEGMENT
         ; Rules and overall explanation.
         display_text_1 DW "Hello! Welcome to our number guessing game!$"
         display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.$"
@@ -96,7 +96,7 @@ DATA SEGMENT
 
         display_text_9 DW "CONGRATS! You have found the number.$"
         display_text_10 DW "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
-    ENDS DATA_TEXT
+    ; ENDS DATA_TEXT
 
 ENDS DATA
 
@@ -308,7 +308,7 @@ CODE SEGMENT
     ;===================================================================
     ; Custom procedures.
     ;===================================================================
-    CODE_CUSTOM_PROCS SEGMENT
+    ; CODE_CUSTOM_PROCS SEGMENT
         ;-------------------------------------------------------------------
         ; Procedure for easily printing text out on the screen.
         ;-------------------------------------------------------------------
@@ -651,6 +651,7 @@ CODE SEGMENT
             RET
         table_generator ENDP
 
-    ENDS CODE_CUSTOM_PROCS
+    ; ENDS CODE_CUSTOM_PROCS
 
-ENDS CODE main
+ENDS CODE 
+END main
