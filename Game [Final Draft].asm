@@ -200,16 +200,27 @@ CODE SEGMENT
         ; Add the user's guess to "all_guesses."
 
         ; Our own technique.
-        MOV AX, 4
-        MUL guess_count
         LEA SI, user_guess
-        LEA DI, all_guesses + AX
+        LEA DI, all_guesses
+        mov AL, guess_count
+        mov AH, 0
+        add DI, AX
         CALL make_duplicate
 
+
+        ; MOV AX, 4
+        ; MUL guess_count
+        ; LEA DI, all_guesses + AX
+        ; CALL make_duplicate
+
         ; From stack overflow.
-        ; LEA DI, all_guesses
-        ; ADD DI, guess_count
-        ; MOV BYTE PTR [DI], user_guess
+            ; LEA DI, all_guesses
+            ; mov AL, guess_count
+            ; mov AH, 0
+            ; add DI, AX
+            ; MOV BYTE PTR [DI], user_guess
+
+
 
         ;-------------------------------------------------------------------
         ; Compare the user's guess with the magic number.
@@ -220,10 +231,12 @@ CODE SEGMENT
         CALL calculate_N
 
         ; Add the N score of this particlar guess to 'N_scores.'
-        ; Our own method.
-        LEA SI, N_scores
-        MOV AX, guess_count
-        MOV BYTE [SI + AX], BH
+        LEA DI, N_scores
+        mov AL, guess_count
+        mov AH, 0
+        add DI, AX
+        MOV [DI], bh
+
 
         ; From stack overflow.
         ; MOV SI, offset N_scores
@@ -234,9 +247,11 @@ CODE SEGMENT
         CALL calculate_P
         
         ; Add the P score to the P_scores array.
-        LEA SI, P_scores
-        ADD SI, guess_count
-        MOV BYTE PTR [SI], BL
+        LEA DI, P_scores
+        mov AL, guess_count
+        mov AH, 0
+        add DI, AX
+        MOV [DI], bl
         
         ;-------------------------------------------------------------------
         ; Display a history of all the user's guesses and their scores.
@@ -246,14 +261,18 @@ CODE SEGMENT
         ;-------------------------------------------------------------------
         ; Check if the number has been found.
         LEA SI, N_scores
-        ADD SI, guess_count
-        CMP 4, BYTE PTR [SI]
+        MOV AL, guess_count
+        MOV AH, 0
+        ADD SI, AX
+        CMP [SI], 4
         JE correct_N_label
 
         correct_N_label:
             LEA SI, P_scores
-            ADD SI, guess_count
-            CMP 4, BYTE PTR [SI]
+            MOV AL, guess_count
+            MOV AH, 0
+            ADD SI, AX
+            CMP [SI], 4
             JE found_label
             JNE increment_guess_count_label
 
