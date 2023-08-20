@@ -248,23 +248,24 @@ CODE SEGMENT
         ;-------------------------------------------------------------------
         ; Display a history of all the user's guesses and their scores.
 
-        MOV AX, offset guesses
-        MOV BX, offset N_scores
-        MOV CX, offset P_scores
-
         CALL table_generator
 
         ;-------------------------------------------------------------------
         ; Check if the number has been found.
-        CMP 4, N_scores[guess_count]
-        JZ correct_label
+        LEA SI, N_scores
+        ADD SI, guess_count
+        CMP 4, BYTE PTR [SI]
+        JE correct_N_label
 
-        correct_label:
-            CMP 4, P_scores[guess_count]
-            JZ found_label
+        correct_N_label:
+            LEA SI, P_scores
+            ADD SI, guess_count
+            CMP 4, BYTE PTR [SI]
+            JE found_label
+            JNE increment_guess_count_label
 
         found_label:
-            MOV found, "True"
+            MOV found, 1
             LEA DX, display_text_9
             CALL print_string
             JMP end_program_label
@@ -272,9 +273,10 @@ CODE SEGMENT
         ;-------------------------------------------------------------------
         ; Increment "guess_count" and check if the maximum number of guesses 
         ; has been reached.
-        INC guess_count
-        CMP guess_count, max_guess_count
-        JZ maximum_guesses_label
+        increment_guess_count_label:
+            INC guess_count
+            CMP guess_count, max_guess_count
+            JE maximum_guesses_label
 
         maximum_guesses_label:
             LEA DX, display_text_10
