@@ -143,17 +143,17 @@ CODE SEGMENT
     
     ;-------------------------------------------------------------------
     ; Display the rules of the game.
-    LEA DX, display_text_1 + 2
+    LEA DX, display_text_1
     CALL print_string
-    LEA DX, display_text_2 + 2
+    LEA DX, display_text_2
     CALL print_string
-    LEA DX, display_text_3 + 2
+    LEA DX, display_text_3
     CALL print_string
-    LEA DX, display_text_4 + 2
+    LEA DX, display_text_4
     CALL print_string
-    LEA DX, display_text_5 + 2
+    LEA DX, display_text_5
     CALL print_string
-    LEA DX, display_text_6 + 2
+    LEA DX, display_text_6
     CALL print_string
 
     ;-------------------------------------------------------------------
@@ -163,7 +163,7 @@ CODE SEGMENT
         ; Take input from the user and validate it.
         validating_user_guess_loop:
             ; Display the prompt.
-            LEA DX, display_text_7 + 2
+            LEA DX, display_text_7
             CALL print_string
 
             ; Take the user's guess and store it in "user_guess."
@@ -183,30 +183,40 @@ CODE SEGMENT
                 ; Each LOOP instruction decrements CX by 1.
                 LOOP input_loop
 
-            ; Store a copy of the user's guess on DX so that the "validate_number" procedure can access it.
-            MOV DX, user_guess
+            ; Store a copy of the user's guess on 'to_be_validated' so that "validate_number" can access it.
+            LEA SI, user_guess
+            LEA DI, to_be_validated
+            CALL make_duplicate
             CALL validate_number
 
             ; Check if the "validate_number" procedure returned true.
-            CMP AX, "True"
+            CMP is_valid, 1
 
             ; Display error message if the number isn't valid.
-            JNZ invalid_user_guess
-            
-            ; Do the loop again if the number is not valid.
-            JMP validating_user_guess_loop
+            JNE invalid_user_guess
 
-        ; A display message for when the user's guess is invalid.
-        invalid_user_guess:
-            LEA DX, display_text_8 + 2
-            CALL print_string
-            RET
-        
+            ; A display message for when the user's guess is invalid.
+            invalid_user_guess:
+                LEA DX, display_text_8
+                CALL print_string
+
+                ; Do the loop again if the number is not valid.
+                JNE validating_user_guess_loop
+
         ;-------------------------------------------------------------------
         ; Add the user's guess to "all_guesses."
-        MOV SI, offset guesses
-        ADD SI, guess_count
-        MOV BYTE PTR [SI], user_guess
+
+        ; Our own technique.
+        MOV AX, 4
+        MUL guess_count
+        LEA SI, user_guess
+        LEA DI, all_guesses + AX
+        CALL make_duplicate
+
+        ; From stack overflow.
+        ; LEA DI, all_guesses
+        ; ADD DI, guess_count
+        ; MOV BYTE PTR [DI], user_guess
 
         ;-------------------------------------------------------------------
         ; Compare the user's guess with the magic number.
@@ -251,7 +261,7 @@ CODE SEGMENT
 
         found_label:
             MOV found, "True"
-            LEA DX, display_text_9 + 2
+            LEA DX, display_text_9
             CALL print_string
             JMP end_program_label
 
@@ -263,7 +273,7 @@ CODE SEGMENT
         JZ maximum_guesses_label
 
         maximum_guesses_label:
-            LEA DX, display_text_10 + 2
+            LEA DX, display_text_10
             CALL print_string
             JMP end_program_label
 
