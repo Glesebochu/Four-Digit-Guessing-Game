@@ -48,10 +48,7 @@ DATA SEGMENT
     ;===================================================================
     ; DATA_VARIABLES SEGMENT
         ; A variable to store the user's current guess.
-        user_guess DW 1
-
-        ; A variable to store the magic number.
-        magic_number DW 1
+        user_guess DB 4 dup(0)
 
         ; A variable for storing the number of guesses the user has made.
         guess_count DB 1
@@ -63,14 +60,13 @@ DATA SEGMENT
         is_valid DB 0
 
         ; A variable for storing a number before it is validated.
-        to_be_validated DW 1   
+        to_be_validated DB 4 dup(0)  
 
         ; For checking if there are repeating digits in the number to be validated.
-        to_be_validated_duplicate DW 1
+        to_be_validated_duplicate DB 4 dup(0)
 
-        ; For the pseudo random number generator.
-        seed DW 0
-        random_number DW 1
+        ; A variable to store the magic (random) number.
+        random_number DB 4 dup(?)
 
         ; For the table generator.
         separator DB '//$'   
@@ -82,20 +78,22 @@ DATA SEGMENT
     ; Text
     ;===================================================================
     ; DATA_TEXT SEGMENT
+        ; A new line.
+        new_line DB 10,13,'$'
         ; Rules and overall explanation.
-        display_text_1 DW "Hello! Welcome to our number guessing game!$"
-        display_text_2 DW "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.$"
-        display_text_3 DW "Rules of the game - You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.$"
-        display_text_4 DW "N tells you how many digits you guessed correctly.$"
-        display_text_5 DW "P tells you how many of the correctly guessed digits are in the right position.$"
-        display_text_6 DW "The goal is to get a score of 4 for both N and P.$"
+        display_text_1 DB "Hello! Welcome to our number guessing game!$"
+        display_text_2 DB "You have to guess a four digit number that we will randomly generate. After every attempt, you will see the score.$"
+        display_text_3 DB "Rules of the game - You cannot repeat digits in your guess and Your guess must be exactly 4 digits long.$"
+        display_text_4 DB "N tells you how many digits you guessed correctly.$"
+        display_text_5 DB "P tells you how many of the correctly guessed digits are in the right position.$"
+        display_text_6 DB "The goal is to get a score of 4 for both N and P.$"
 
         ; During interaction with the user.
-        display_text_7 DW "Enter a four digit number: $"
-        display_text_8 DW "Invalid. Try again.$"
+        display_text_7 DB "Enter a four digit number: $"
+        display_text_8 DB "Invalid. Try again.$"
 
-        display_text_9 DW "CONGRATS! You have found the number.$"
-        display_text_10 DW "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
+        display_text_9 DB "CONGRATS! You have found the number.$"
+        display_text_10 DB "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
     ; ENDS DATA_TEXT
 
 ENDS DATA
@@ -112,7 +110,7 @@ CODE SEGMENT
         MOV DS, AX 
 
         ;-------------------------------------------------------------------
-        ; Generate a valid random number and store it on "magic_number."
+        ; Generate a valid random number.
         validating_random_number_loop:
             ; Generate a random number. The generated number is stored on DX.
             CALL pseudo_random_number_generator
@@ -126,16 +124,11 @@ CODE SEGMENT
             CALL validate_number
 
             ; Check if the "validate_number" procedure returned true (1).
-            CMP is_valid, 1
+            CMP is_valid, 0
             
             ; Do the loop again if the number is not valid.
-            JNE validating_random_number_loop
+            JE validating_random_number_loop
 
-        ; Copy the values in 'to_be_validated' to 'magic_number.'
-        LEA DI, magic_number
-        LEA SI, to_be_validated
-        CALL make_duplicate
-        
         ;-------------------------------------------------------------------
         ; Display the rules of the game.
         LEA DX, display_text_1
@@ -189,6 +182,7 @@ CODE SEGMENT
 
                 ; Display error message if the number isn't valid.
                 JNE invalid_user_guess
+                JE valid_user_guess
 
                 ; A display message for when the user's guess is invalid.
                 invalid_user_guess:
@@ -197,6 +191,8 @@ CODE SEGMENT
 
                     ; Do the loop again if the number is not valid.
                     JNE validating_user_guess_loop
+
+                valid_user_guess:
 
             ;-------------------------------------------------------------------
             ; Add the user's guess to "all_guesses."
@@ -209,26 +205,8 @@ CODE SEGMENT
             add DI, AX
             CALL make_duplicate
 
-
-            ; MOV AX, 4
-            ; MUL guess_count
-            ; LEA DI, all_guesses + AX
-            ; CALL make_duplicate
-
-            ; From stack overflow.
-                ; LEA DI, all_guesses
-                ; mov AL, guess_count
-                ; mov AH, 0
-                ; add DI, AX
-                ; MOV BYTE PTR [DI], user_guess
-
-
-
             ;-------------------------------------------------------------------
             ; Compare the user's guess with the magic number.
-            ; The magic number is stored in BX so that calculate_N and calculate_P can access it.
-            MOV BX, magic_number
-
             ; Calculate the N score and store it in BH.
             CALL calculate_N
 
@@ -238,12 +216,6 @@ CODE SEGMENT
             mov AH, 0
             add DI, AX
             MOV [DI], bh
-
-
-            ; From stack overflow.
-            ; MOV SI, offset N_scores
-            ; ADD SI, guess_count
-            ; MOV BYTE PTR [SI], BH
 
             ; Calculate the P score and store it in BL.
             CALL calculate_P
@@ -315,22 +287,15 @@ CODE SEGMENT
         print_string PROC
             MOV AH, 09h
             INT 21h
+
+            ; Clear the DX register.
+            XOR DX, DX
+
+            LEA DX, new_line
+            INT 21h
+            
             RET
         print_string ENDP
-
-        ;-------------------------------------------------------------------
-        ; Procedure for easily finding the size of an array.
-        ;-------------------------------------------------------------------
-        ; find_array_size PROC
-        ;     CMP BYTE PTR [array+SI], 0   ; Check if element is null
-        ;     JE return_to_caller
-        ;     INC SI                        ; Move to the next element
-        ;     INC CX                        ; Increment count
-        ;     JMP find_array_size
-
-        ;     return_to_caller:
-        ;         RET
-        ; find_array_size ENDP
 
         ;-------------------------------------------------------------------
         ; Procedure for copying the values in one array to another.
@@ -344,14 +309,15 @@ CODE SEGMENT
                 INC si
                 INC di
                 LOOP copy_loop
+            RET
         make_duplicate ENDP
 
         ;-------------------------------------------------------------------
         ; Procedure for validating a number.
         ;-------------------------------------------------------------------
         validate_number PROC
-            LEA si, to_be_validated
-            MOV cx, 4
+            LEA SI, to_be_validated
+            MOV CX, 4
             
             ; Check if the user's input is actually a string of numbers.
             check_loop:
@@ -361,17 +327,23 @@ CODE SEGMENT
                 JL non_numeric
                 CMP al, '9'
                 jg non_numeric
-                INC si
 
+                INC si
+                JMP numeric
+                non_numeric:
+                    MOV is_valid, 0
+                    LEA DX, display_text_8
+                    CALL print_string
+                
+                numeric:
                 LOOP check_loop
 
+
+            XOR BX, BX
             ; Check if there are any repeating digits.
             CALL check_repeating_digit
 
-            non_numeric:
-                MOV is_valid, 0
-                LEA DX, display_text_8
-                CALL print_string
+            RET
 
         validate_number ENDP 
 
@@ -382,37 +354,46 @@ CODE SEGMENT
             make_duplicate_label:
                 lea si, to_be_validated
                 lea di, to_be_validated_duplicate
+
+                MOV CX, 4
                 copy_loop_for_checker:
                     mov al, [si]
-                    cmp al, 00
+                    cmp CX, 00
                     je count_repeating_digits_label
                     mov [di], al
                     inc si
                     inc di
-                    jmp copy_loop_for_checker
+                    LOOP copy_loop_for_checker
 
             ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
             count_repeating_digits_label:
                 lea si, to_be_validated 
                 lea di, to_be_validated_duplicate
                 
+                ; Counter variable for going through 'to_be_validated'
+                MOV CX, 4
                 check_if_to_be_validated_is_empty:
                     mov ah, [si]
-                    cmp ah, 00
-                    je set_value_to_is_valid
+                    CMP CX, 00
+                    JE set_value_to_is_valid
+                    DEC CX
 
+                ; Counter variable for going through 'to_be_validated_duplicate'
+                MOV DL, 4
                 actual_comparison_loop:
                     mov al, [di]
-                    cmp al, 00
+                    cmp DL, 00
                     je go_to_next_element_in_to_be_validated
                     cmp ah, al
                     je increment_if_same
                     inc di
+                    DEC DL
                     jmp actual_comparison_loop
 
                 increment_if_same:
                     inc bh
                     inc di
+                    DEC DL
                     jmp actual_comparison_loop
 
                 go_to_next_element_in_to_be_validated:
@@ -428,6 +409,7 @@ CODE SEGMENT
 
                 no_repetitions_exist:
                     mov is_valid, 1
+                    RET
 
                 repetitions_exist:
                     mov is_valid, 0
@@ -441,50 +423,33 @@ CODE SEGMENT
         ;-------------------------------------------------------------------
         pseudo_random_number_generator PROC
 
-            CALL InitializeRandom  
-            CALL GenerateRandomNumber  
+            LEA SI, random_number
+            MOV CX, 4               
+
+            populate_random_number_by_digits_loop: 
+            
+                PUSH CX
+                
+                ; For each digit, generate the current milisecond and convert to a single digit.
+                MOV AH, 2Ch  ; Getting system time
+                INT 21h
+                ; The system time is returned in CH (hours), CL (minutes), DH (seconds), and DL (milliseconds) and we combine them by shifting to set the seed value
+                
+                XOR AX, AX
+                MOV AL, DL
+                XOR BX,BX
+                MOV BL,0AH
+                DIV BL
+                
+                MOV [SI], AL
+                INC SI 
+                
+                POP CX 
+                LOOP populate_random_number_by_digits_loop
+                
             RET
 
         pseudo_random_number_generator ENDP
-
-        ; Initializing the random number generator with the system time as the seed value
-        InitializeRandom PROC  
-            MOV AH, 2Ch  ; Getting system time
-            INT 21h
-
-            ; The system time is returned in CH (hours), CL (minutes), DH (seconds), and DL (milliseconds) and we combine them by shifting to set the seed value
-
-            MOV AX, CX
-            SHL AX, 8           
-            ADD AX, CX          
-            SHL AX, 8          
-            ADD AX, DX         
-            SHL AX, 8          
-            ADD AX, DX        
-
-            MOV seed, AX
-
-            RET
-        InitializeRandom ENDP
-
-        ; Generating the random 4-digit number using XORshift algorithm
-        GenerateRandomNumber PROC  
-            MOV AX, seed    
-
-            XOR AX, ARBITRARY_NUM_1     
-            SHL AX, 7           
-            XOR AX, ARBITRARY_NUM_2    
-            SHR AX, 7          
-
-            ; Dividing the repseudo_random_number_generatorder by 9000 to obtain a 4-digit random number between 1000 and 9999
-            MOV BX, 9000
-            DIV BX  ; DX:AX = DX:AX / BX (repseudo_random_number_generatorder will be stored in AX)
-
-            ADD AX, 1000  ; AddING 1000 to the repseudo_random_number_generatorder to get a number between 1000 and 9999
-            MOV random_number, AX
-
-            RET
-        GenerateRandomNumber ENDP
 
         ;-------------------------------------------------------------------
         ; Procedure for calculating the N score of the user's guess.
@@ -492,7 +457,7 @@ CODE SEGMENT
         calculate_N PROC
             ; load the two arrays aaddress into the si and di register for looping
             lea si, user_guess ; [4,3,2,1]
-            lea di, magic_number ; [1,2,3,4]
+            lea di, random_number ; [1,2,3,4]
 
             ; set your counter register
             mov cx, 4
@@ -507,7 +472,7 @@ CODE SEGMENT
                 push si
                 push cx
 
-                lea si, magic_number
+                lea si, random_number
                 mov cx, 4
 
             ; check for the current users input in the rest of the magic's number array
@@ -530,7 +495,7 @@ CODE SEGMENT
                 pop cx
                 pop si
                 inc si      ; Move to the next digit in user_guess
-                inc di      ; Move to the next digit in magic_number
+                inc di      ; Move to the next digit in random_number
                 loop check_existance
 
             ret
@@ -542,7 +507,7 @@ CODE SEGMENT
         calculate_P PROC
             ; Compare the user's guess with the magic number 
             lea si, user_guess
-            lea di, magic_number
+            lea di, random_number
             mov cx, 4
 
             compare_P_loop:
