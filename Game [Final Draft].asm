@@ -199,11 +199,15 @@ CODE SEGMENT
             ;-------------------------------------------------------------------
             ; Add the user's guess to "all_guesses."
 
-            ; Our own technique.
+           ; Our own technique.
+            XOR BX,BX
+            MOV BX,4H
             LEA SI, user_guess
             LEA DI, all_guesses
             MOV AL, guess_count
             MOV AH, 0
+            CMP AL,00H
+            MUL BX     
             add DI, AX
             CALL make_duplicate
 
@@ -590,88 +594,66 @@ CODE SEGMENT
         ; ----------------------------------
         ; - Registers used: AX, BX, CX, DX -        
         ;-------------------------------------------------------------------
-        ; table_generator PROC 
+        table_generator PROC 
              
-        ;     LEA SI, all_guesses                                            
-        ;     LEA BX, N_scores                                  
-        ;     LEA DI, P_scores 
+            MOV AH,09H
+                LEA DX, new_line
+                int 21h
 
-        ;     LEA dx, header
-        ;     MOV ah, 9    
-        ;     INT 21h  
-                    
-        ;     ; Go to a new line
-        ;     MOV DL, 0Dh     ; ASCII value for carriage return
-        ;     MOV AH, 02h     
-        ;     INT 21h
+                MOV AH,09H
+                LEA DX, display_text_11
+                int 21h
 
-        ;     MOV DL, 0Ah     ; ASCII value for line feed
-        ;     MOV AH, 02h     
-        ;     INT 21h 
-            
-        ;     PrintLoop:            
-        ;         MOV CX, 0          
-            
-        ;     LengthLoop:
-        ;         CMP BYTE PTR [SI], '$'   ; Check if the current character is the string terminator
-        ;         JE PrintString           ; If it is, jump to PrintString
+                LEA SI, N_scores
+                MOV AL, guess_count
+                MOV AH, 0
+                ADD SI, AX
+                MOV AH, 02h
+                MOV DX,[SI]
+                ADD DX,'0'
+                INT 21h
 
-        ;         INC SI                   ; Move to the next character
-        ;         INC CX                   ; Increment the length counter
-        ;         JMP LengthLoop           ; Repeat until the string terminator is found
+                MOV AH,09H
+                LEA DX, new_line
+                int 21h
 
-        ;     PrintString:
-        ;         MOV AH, 09h       ; Set AH to 09h for printing string
-        ;         MOV DX, SI        ; Load the address of the current string into DX
-        ;         SUB DX, CX        ; Subtract the length of the string from DX to get the starting address
-        ;         INT 21h           
-                    
-        ;     ;insert separator 
-        ;     lea dx, separator
-        ;     MOV ah, 9    
-        ;     int 21h
-            
-        ;     ;the N array display            
-        ;     MOV AL, [BX]        
-        ;     ADD AL, 30h        
-        ;     MOV DL, AL         
+                MOV AH,09H
+                LEA DX, display_text_12
+                int 21h
 
-        ;     MOV AH, 02h        
-        ;     INT 21h
+                LEA SI, P_scores
+                MOV AL, guess_count
+                MOV AH, 0
+                ADD SI, AX
+                MOV AH, 02h
+                MOV DX,[SI]
+                ADD DX,'0'
+                INT 21h
                 
-        ;     ;insert separator
-        ;     lea dx, separator
-        ;     MOV ah, 9    
-        ;     int 21h
+                ;insert separator
+                lea dx, separator
+                MOV ah, 9    
+                int 21h
             
-        ;     ;the P array display      
-        ;     MOV AL, [DI]        
-        ;     ADD AL, 30h        
-        ;     MOV DL, AL        
-
-        ;     MOV AH, 02h        
-        ;     INT 21h
+             
                             
-                            
-        ;     ; Go to a new line
-        ;     MOV DL, 0Dh     ; ASCII value for carriage return
-        ;     MOV AH, 02h     
-        ;     INT 21h
+                ; Go to a new line
+                MOV DL, 0Dh     ; ASCII value for carriage return
+                MOV AH, 02h     
+                INT 21h
 
-        ;     MOV DL, 0Ah     ; ASCII value for line feed
-        ;     MOV AH, 02h    
-        ;     INT 21h  
+                MOV DL, 0Ah     ; ASCII value for line feed
+                MOV AH, 02h    
+                INT 21h  
+                
+                ; Increment registers used to access the arrays.
+                INC DI
+                INC BX                          
+                INC SI            ; Move to the next string in the array
             
-        ;     ; Increment registers used to access the arrays.
-        ;     INC DI
-        ;     INC BX                          
-        ;     INC SI            ; Move to the next string in the array
 
-        ;     CMP BYTE PTR [SI], '$'   ; Check if the next character is the array terminator
-        ;     JNE PrintLoop            ; If it is not, jump back to PrintLoop
-
-        ;     RET
-        ; table_generator ENDP
+            RET
+        table_generator ENDP
 
 ENDS CODE 
 END main
