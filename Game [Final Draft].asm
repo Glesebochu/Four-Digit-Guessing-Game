@@ -125,13 +125,19 @@ CODE SEGMENT
         ; Display the rules of the game.
         LEA DX, display_text_1
         CALL print_string
+        LEA DX, new_line
+        CALL print_string
         LEA DX, display_text_2
+        CALL print_string
+        LEA DX, new_line
         CALL print_string
         LEA DX, display_text_3
         CALL print_string
         LEA DX, display_text_4
         CALL print_string
         LEA DX, display_text_5
+        CALL print_string
+        LEA DX, new_line
         CALL print_string
         LEA DX, display_text_6
         CALL print_string
@@ -143,6 +149,8 @@ CODE SEGMENT
             ; Take input from the user and validate it.
             validating_user_guess_loop:
                 ; Display the prompt.
+                LEA DX, new_line
+                CALL print_string
                 LEA DX, display_text_7
                 CALL print_string
 
@@ -222,7 +230,7 @@ CODE SEGMENT
             ;-------------------------------------------------------------------
             ; Display a history of all the user's guesses and their scores.
 
-            CALL table_generator
+            ; CALL table_generator
 
             ;-------------------------------------------------------------------
             ; Check if the number has been found.
@@ -232,6 +240,7 @@ CODE SEGMENT
             ADD SI, AX
             CMP [SI], 4
             JE correct_N_label
+            JNE increment_guess_count_label
 
             correct_N_label:
                 LEA SI, P_scores
@@ -244,6 +253,9 @@ CODE SEGMENT
 
             found_label:
                 MOV found, 1
+                LEA DX, new_line
+                CALL print_string
+                CALL print_string
                 LEA DX, display_text_9
                 CALL print_string
                 JMP end_program_label
@@ -255,8 +267,11 @@ CODE SEGMENT
                 INC guess_count
                 CMP guess_count, max_guess_count
                 JE maximum_guesses_label
+                JNE game_loop
 
             maximum_guesses_label:
+                LEA DX, new_line
+                CALL print_string
                 LEA DX, display_text_10
                 CALL print_string
                 JMP end_program_label
@@ -357,7 +372,7 @@ CODE SEGMENT
                 copy_loop_for_checker:
                     MOV AL, [si]
                     CMP CX, 00
-                    je count_repeating_digits_label
+                    JE count_repeating_digits_label
                     MOV [di], al
                     INC SI
                     INC DI
@@ -381,9 +396,9 @@ CODE SEGMENT
                 actual_comparison_loop:
                     MOV AL, [di]
                     CMP DL, 00
-                    je go_to_next_element_in_to_be_validated
+                    JE go_to_next_element_in_to_be_validated
                     CMP ah, al
-                    je increment_if_same
+                    JE increment_if_same
                     INC DI
                     DEC DL
                     jmp actual_comparison_loop
@@ -402,8 +417,8 @@ CODE SEGMENT
             ; Set the 'is_valid' variable to 0 or 1 representing false or true respectively.
             set_value_to_is_valid:
                 CMP bh, 4
-                je no_repetitions_exist
-                jne repetitions_exist
+                JE no_repetitions_exist
+                JNE repetitions_exist
 
                 no_repetitions_exist:
                     MOV is_valid, 1
@@ -426,7 +441,7 @@ CODE SEGMENT
             LEA SI, random_number
             MOV CX, 4               
 
-            populate_random_number_by_digits_loop: 
+            POPulate_random_number_by_digits_loop: 
             
                 ; Save the counter variable on the stack.
                 PUSH CX
@@ -453,7 +468,7 @@ CODE SEGMENT
                 
                 ; Obtain the counter variable from the stack.
                 POP CX 
-                LOOP populate_random_number_by_digits_loop
+                LOOP POPulate_random_number_by_digits_loop
                 
             RET
 
@@ -477,13 +492,13 @@ CODE SEGMENT
 
             check_existance:
 
+                ; save the previous value of the CX register to prevent CX from being reset 
+                PUSH si
+                PUSH CX
+
                 MOV AL, [si]
                 CMP AL, [di]
-                je increment_N
-
-                ; save the previous value of the CX register to prevent CX from being reset 
-                push si
-                push CX
+                JE increment_N
 
                 LEA SI, random_number
                 MOV CX, 4
@@ -491,13 +506,9 @@ CODE SEGMENT
             ; check for the current users input in the rest of the random_number array
             compare_current_input_loop:
                 CMP AL, [si]
-                je increment_N_val
+                JE increment_N
                 INC SI
-            LOOP compare_current_input_loop
-            jmp continue_N_comparison
-
-            increment_N_val:
-                inc bh
+                LOOP compare_current_input_loop
                 jmp continue_N_comparison
 
             increment_N:
@@ -505,13 +516,13 @@ CODE SEGMENT
                 jmp continue_N_comparison
 
             continue_N_comparison:
-                pop CX
-                pop si
+                POP CX
+                POP si
                 INC SI      ; Move to the next digit in user_guess
                 INC DI      ; Move to the next digit in random_number
                 LOOP check_existance
 
-            ret
+            RET
         calculate_N ENDP
 
         ;-------------------------------------------------------------------
@@ -531,14 +542,14 @@ CODE SEGMENT
             compare_P_loop:
                 MOV AL, [si]
                 CMP AL, [di]
-                je increment_P
+                JE increment_P
 
                 ; Move to the next digit in user_guess and the magic number
                 INC SI
                 INC DI
                 LOOP compare_P_loop
 
-                ret
+                RET
 
             increment_P:
                 INC BL  
@@ -546,7 +557,7 @@ CODE SEGMENT
                 INC DI  
                 LOOP compare_P_loop
 
-                ret
+                RET
         calculate_P ENDP
 
         ;-------------------------------------------------------------------
