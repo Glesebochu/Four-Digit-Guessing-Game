@@ -118,7 +118,7 @@ CODE SEGMENT
             ; Check if the "validate_number" procedure returned true (1).
             CMP is_valid, 0
             
-            ; Do the loop again if the number is not valid.
+            ; Do the LOOP again if the number is not valid.
             JE validating_random_number_loop
 
         ;-------------------------------------------------------------------
@@ -181,7 +181,7 @@ CODE SEGMENT
                     LEA DX, display_text_8
                     CALL print_string
 
-                    ; Do the loop again if the number is not valid.
+                    ; Do the LOOP again if the number is not valid.
                     JNE validating_user_guess_loop
 
                 valid_user_guess:
@@ -192,8 +192,8 @@ CODE SEGMENT
             ; Our own technique.
             LEA SI, user_guess
             LEA DI, all_guesses
-            mov AL, guess_count
-            mov AH, 0
+            MOV AL, guess_count
+            MOV AH, 0
             add DI, AX
             CALL make_duplicate
 
@@ -204,8 +204,8 @@ CODE SEGMENT
 
             ; Add the N score of this particlar guess to 'N_scores.'
             LEA DI, N_scores
-            mov AL, guess_count
-            mov AH, 0
+            MOV AL, guess_count
+            MOV AH, 0
             add DI, AX
             MOV [DI], bh
 
@@ -214,8 +214,8 @@ CODE SEGMENT
             
             ; Add the P score to the P_scores array.
             LEA DI, P_scores
-            mov AL, guess_count
-            mov AH, 0
+            MOV AL, guess_count
+            MOV AH, 0
             add DI, AX
             MOV [DI], bl
             
@@ -274,12 +274,14 @@ CODE SEGMENT
     ;===================================================================
         ;-------------------------------------------------------------------
         ; Procedure for easily printing text out on the screen.
+        ; ----------------------
+        ; - Registers used: DX -
         ;-------------------------------------------------------------------
         print_string PROC
             MOV AH, 09h
             INT 21h
 
-            ; Clear the DX register.
+            ; Clear the DX register (after printing out the desired string) for the new line.
             XOR DX, DX
 
             LEA DX, new_line
@@ -290,12 +292,14 @@ CODE SEGMENT
 
         ;-------------------------------------------------------------------
         ; Procedure for copying the values in one array to another.
+        ; ------------------------------
+        ; - Registers used: AX, CX, DX -
         ;-------------------------------------------------------------------
         make_duplicate PROC
             ; This takes whatever was specified by SI to DI.
             MOV CX, 4
             copy_loop:
-                MOV al, [si]
+                MOV AL, [si]
                 MOV [di], al
                 INC si
                 INC di
@@ -305,6 +309,8 @@ CODE SEGMENT
 
         ;-------------------------------------------------------------------
         ; Procedure for validating a number.
+        ; ----------------------------------
+        ; - Registers used: AX, BX, CX, DX -
         ;-------------------------------------------------------------------
         validate_number PROC
             LEA SI, to_be_validated
@@ -312,11 +318,11 @@ CODE SEGMENT
             
             ; Check if the user's input is actually a string of numbers.
             check_loop:
-                MOV al, [si]
-                ADD al, '0'
-                CMP al, '0'
+                MOV AL, [si]
+                ADD AL, '0'
+                CMP AL, '0'
                 JL non_numeric
-                CMP al, '9'
+                CMP AL, '9'
                 jg non_numeric
 
                 INC si
@@ -329,8 +335,6 @@ CODE SEGMENT
                 numeric:
                 LOOP check_loop
 
-
-            XOR BX, BX
             ; Check if there are any repeating digits.
             CALL check_repeating_digit
 
@@ -339,32 +343,35 @@ CODE SEGMENT
         validate_number ENDP 
 
         check_repeating_digit PROC
-            lea si, to_be_validated
+            ; Clear BX register for usage.
+            XOR BX, BX
+
+            LEA SI, to_be_validated
 
             ; Make a duplicate of to_be_validated.
             make_duplicate_label:
-                lea si, to_be_validated
-                lea di, to_be_validated_duplicate
+                LEA SI, to_be_validated
+                LEA DI, to_be_validated_duplicate
 
                 MOV CX, 4
                 copy_loop_for_checker:
-                    mov al, [si]
-                    cmp CX, 00
+                    MOV AL, [si]
+                    CMP CX, 00
                     je count_repeating_digits_label
-                    mov [di], al
-                    inc si
-                    inc di
+                    MOV [di], al
+                    INC SI
+                    INC DI
                     LOOP copy_loop_for_checker
 
             ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
             count_repeating_digits_label:
-                lea si, to_be_validated 
-                lea di, to_be_validated_duplicate
+                LEA SI, to_be_validated 
+                LEA DI, to_be_validated_duplicate
                 
                 ; Counter variable for going through 'to_be_validated'
                 MOV CX, 4
                 check_if_to_be_validated_is_empty:
-                    mov ah, [si]
+                    MOV ah, [si]
                     CMP CX, 00
                     JE set_value_to_is_valid
                     DEC CX
@@ -372,38 +379,38 @@ CODE SEGMENT
                 ; Counter variable for going through 'to_be_validated_duplicate'
                 MOV DL, 4
                 actual_comparison_loop:
-                    mov al, [di]
-                    cmp DL, 00
+                    MOV AL, [di]
+                    CMP DL, 00
                     je go_to_next_element_in_to_be_validated
-                    cmp ah, al
+                    CMP ah, al
                     je increment_if_same
-                    inc di
+                    INC DI
                     DEC DL
                     jmp actual_comparison_loop
 
                 increment_if_same:
                     inc bh
-                    inc di
+                    INC DI
                     DEC DL
                     jmp actual_comparison_loop
 
                 go_to_next_element_in_to_be_validated:
-                    inc si
-                    lea di, to_be_validated_duplicate
+                    INC SI
+                    LEA DI, to_be_validated_duplicate
                     jmp check_if_to_be_validated_is_empty
 
             ; Set the 'is_valid' variable to 0 or 1 representing false or true respectively.
             set_value_to_is_valid:
-                cmp bh, 4
+                CMP bh, 4
                 je no_repetitions_exist
                 jne repetitions_exist
 
                 no_repetitions_exist:
-                    mov is_valid, 1
+                    MOV is_valid, 1
                     RET
 
                 repetitions_exist:
-                    mov is_valid, 0
+                    MOV is_valid, 0
             
             RET
 
@@ -411,6 +418,8 @@ CODE SEGMENT
 
         ;-------------------------------------------------------------------
         ; Procedures for generating a random number.
+        ; ----------------------------------
+        ; - Registers used: AX, BX, CX, DX -        
         ;-------------------------------------------------------------------
         pseudo_random_number_generator PROC
 
@@ -419,22 +428,30 @@ CODE SEGMENT
 
             populate_random_number_by_digits_loop: 
             
+                ; Save the counter variable on the stack.
                 PUSH CX
                 
                 ; For each digit, generate the current milisecond and convert to a single digit.
+                ; The system time is returned in CH (hours), CL (minutes), DH (seconds), and DL (milliseconds)
                 MOV AH, 2Ch  ; Getting system time
                 INT 21h
-                ; The system time is returned in CH (hours), CL (minutes), DH (seconds), and DL (milliseconds) and we combine them by shifting to set the seed value
                 
+                ; Store the current milisecond on AL.
                 XOR AX, AX
                 MOV AL, DL
-                XOR BX,BX
-                MOV BL,0AH
+                
+                ; Clear BX and store the value 10 on BL.
+                XOR BX, BX
+                MOV BL, 0AH
+
+                ; Divide AL by BL (the value 10).
                 DIV BL
                 
+                ; Take the random digit (which is less than 10) to wherever SI is pointing at.
                 MOV [SI], AL
                 INC SI 
                 
+                ; Obtain the counter variable from the stack.
                 POP CX 
                 LOOP populate_random_number_by_digits_loop
                 
@@ -444,34 +461,39 @@ CODE SEGMENT
 
         ;-------------------------------------------------------------------
         ; Procedure for calculating the N score of the user's guess.
+        ; ----------------------------------
+        ; - Registers used: AX, BX, CX, DX - 
         ;-------------------------------------------------------------------
         calculate_N PROC
+            ; Reset the BX register for proper usage.
+            XOR BX, BX
+            
             ; load the two arrays aaddress into the si and di register for looping
-            lea si, user_guess ; [4,3,2,1]
-            lea di, random_number ; [1,2,3,4]
+            LEA SI, user_guess 
+            LEA DI, random_number
 
             ; set your counter register
-            mov cx, 4
+            MOV CX, 4
 
             check_existance:
 
-                mov al, [si] ; al = 4
-                cmp al, [di] ; 4 == 1 => false
+                MOV AL, [si]
+                CMP AL, [di]
                 je increment_N
 
-                ; save the previous value of the cx register to prevent cx from being rest 
+                ; save the previous value of the CX register to prevent CX from being reset 
                 push si
-                push cx
+                push CX
 
-                lea si, random_number
-                mov cx, 4
+                LEA SI, random_number
+                MOV CX, 4
 
-            ; check for the current users input in the rest of the magic's number array
+            ; check for the current users input in the rest of the random_number array
             compare_current_input_loop:
-                cmp al, [si]
+                CMP AL, [si]
                 je increment_N_val
-                inc si
-            loop compare_current_input_loop
+                INC SI
+            LOOP compare_current_input_loop
             jmp continue_N_comparison
 
             increment_N_val:
@@ -483,49 +505,57 @@ CODE SEGMENT
                 jmp continue_N_comparison
 
             continue_N_comparison:
-                pop cx
+                pop CX
                 pop si
-                inc si      ; Move to the next digit in user_guess
-                inc di      ; Move to the next digit in random_number
-                loop check_existance
+                INC SI      ; Move to the next digit in user_guess
+                INC DI      ; Move to the next digit in random_number
+                LOOP check_existance
 
             ret
         calculate_N ENDP
 
         ;-------------------------------------------------------------------
         ; Procedure for calculating the P score of the user's guess.
+        ; ----------------------------------
+        ; - Registers used: AX, BX, CX, DX -         
         ;-------------------------------------------------------------------
         calculate_P PROC
+            ; Reset the BX register for proper usage.
+            XOR BX, BX
+
             ; Compare the user's guess with the magic number 
-            lea si, user_guess
-            lea di, random_number
-            mov cx, 4
+            LEA SI, user_guess
+            LEA DI, random_number
+            MOV CX, 4
 
             compare_P_loop:
-                mov al, [si]
-                cmp al, [di]
+                MOV AL, [si]
+                CMP AL, [di]
                 je increment_P
 
                 ; Move to the next digit in user_guess and the magic number
-                inc si
-                inc di
-                loop compare_P_loop
+                INC SI
+                INC DI
+                LOOP compare_P_loop
 
                 ret
 
             increment_P:
-                inc bl  
-                inc si  
-                inc di  
-                loop compare_P_loop
+                INC BL  
+                INC SI  
+                INC DI  
+                LOOP compare_P_loop
 
                 ret
         calculate_P ENDP
 
         ;-------------------------------------------------------------------
         ; Procedure for drawing a table for displaying the user's past guesses.
+        ; ----------------------------------
+        ; - Registers used: AX, BX, CX, DX -        
         ;-------------------------------------------------------------------
-        table_generator PROC  
+        table_generator PROC 
+             
             LEA SI, all_guesses                                            
             LEA BX, N_scores                                  
             LEA DI, P_scores 
@@ -562,7 +592,7 @@ CODE SEGMENT
                     
             ;insert separator 
             lea dx, separator
-            mov ah, 9    
+            MOV ah, 9    
             int 21h
             
             ;the N array display            
@@ -575,10 +605,10 @@ CODE SEGMENT
                 
             ;insert separator
             lea dx, separator
-            mov ah, 9    
+            MOV ah, 9    
             int 21h
             
-            ;the P array diaplay      
+            ;the P array display      
             MOV AL, [DI]        
             ADD AL, 30h        
             MOV DL, AL        
