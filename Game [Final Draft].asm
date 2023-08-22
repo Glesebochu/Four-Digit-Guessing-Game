@@ -88,6 +88,8 @@ DATA SEGMENT
         display_text_9 DB "CONGRATS! You have found the number.$"
         display_text_10 DB "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
 
+        display_text_11 DB "You have an N score of:  $"
+        display_text_12 DB "You have a P score of:   $"
 ENDS DATA
 
 ;***********************************************************************
@@ -189,8 +191,8 @@ CODE SEGMENT
                     LEA DX, display_text_8
                     CALL print_string
 
-                    ; Do the LOOP again if the number is not valid.
-                    JNE validating_user_guess_loop
+                    ; Do the LOOP again because the number is not valid.
+                    JMP validating_user_guess_loop
 
                 valid_user_guess:
 
@@ -264,6 +266,40 @@ CODE SEGMENT
             ; Increment "guess_count" and check if the maximum number of guesses 
             ; has been reached.
             increment_guess_count_label:
+                MOV AH,09H
+                LEA DX, new_line
+                int 21h
+
+                MOV AH,09H
+                LEA DX, display_text_11
+                int 21h
+
+                LEA SI, N_scores
+                MOV AL, guess_count
+                MOV AH, 0
+                ADD SI, AX
+                MOV AH, 02h
+                MOV DX,[SI]
+                ADD DX,'0'
+                INT 21h
+
+                MOV AH,09H
+                LEA DX, new_line
+                int 21h
+
+                MOV AH,09H
+                LEA DX, display_text_12
+                int 21h
+
+                LEA SI, P_scores
+                MOV AL, guess_count
+                MOV AH, 0
+                ADD SI, AX
+                MOV AH, 02h
+                MOV DX,[SI]
+                ADD DX,'0'
+                INT 21h
+
                 INC guess_count
                 CMP guess_count, max_guess_count
                 JE maximum_guesses_label
@@ -364,19 +400,10 @@ CODE SEGMENT
             LEA SI, to_be_validated
 
             ; Make a duplicate of to_be_validated.
-            make_duplicate_label:
                 LEA SI, to_be_validated
                 LEA DI, to_be_validated_duplicate
+                CALL make_duplicate
 
-                MOV CX, 4
-                copy_loop_for_checker:
-                    MOV AL, [si]
-                    CMP CX, 00
-                    JE count_repeating_digits_label
-                    MOV [di], al
-                    INC SI
-                    INC DI
-                    LOOP copy_loop_for_checker
 
             ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
             count_repeating_digits_label:
@@ -479,7 +506,7 @@ CODE SEGMENT
         ; ----------------------------------
         ; - Registers used: AX, BX, CX, DX - 
         ;-------------------------------------------------------------------
-        calculate_N PROC
+      calculate_N PROC
             ; Reset the BX register for proper usage.
             XOR BX, BX
             
@@ -487,41 +514,39 @@ CODE SEGMENT
             LEA SI, user_guess 
             LEA DI, random_number
 
-            ; set your counter register
-            MOV CX, 4
-
-            check_existance:
-
-                ; save the previous value of the CX register to prevent CX from being reset 
-                PUSH si
-                PUSH CX
-
-                MOV AL, [si]
-                CMP AL, [di]
+            ; set your counter registers
+            MOV CX, 4  
+            MOV DX,4
+            
+            ;this will check if the current digit stored at si is at di if so it increments
+            check_in_random_number:
+                CMP CX,0
+                JE end_check
+                MOV al,[SI]
+                CMP al,[di]
                 JE increment_N
-
-                LEA SI, random_number
-                MOV CX, 4
-
-            ; check for the current users input in the rest of the random_number array
-            compare_current_input_loop:
-                CMP AL, [si]
-                JE increment_N
-                INC SI
-                LOOP compare_current_input_loop
-                jmp continue_N_comparison
-
-            increment_N:
-                inc bh
-                jmp continue_N_comparison
-
-            continue_N_comparison:
-                POP CX
-                POP si
-                INC SI      ; Move to the next digit in user_guess
-                INC DI      ; Move to the next digit in random_number
-                LOOP check_existance
-
+                INC DI
+                DEC DX
+                CMP DX,0
+                JE move_on_to_next_user_digit 
+                JMP check_in_random_number
+                
+                increment_N:
+                    INC BH
+                    INC SI
+                    DEC CX
+                    LEA DI,random_number
+                    MOV DX,4
+                    JMP check_in_random_number 
+                    
+                ;this will only be done if the current user guess digit is not found in random_number
+                move_on_to_next_user_digit:
+                    INC SI
+                    LEA DI,random_number
+                    DEC CX 
+                    MOV DX,4
+                    JMP check_in_random_number
+            end_check:
             RET
         calculate_N ENDP
 
@@ -565,88 +590,88 @@ CODE SEGMENT
         ; ----------------------------------
         ; - Registers used: AX, BX, CX, DX -        
         ;-------------------------------------------------------------------
-        table_generator PROC 
+        ; table_generator PROC 
              
-            LEA SI, all_guesses                                            
-            LEA BX, N_scores                                  
-            LEA DI, P_scores 
+        ;     LEA SI, all_guesses                                            
+        ;     LEA BX, N_scores                                  
+        ;     LEA DI, P_scores 
 
-            LEA dx, header
-            MOV ah, 9    
-            INT 21h  
+        ;     LEA dx, header
+        ;     MOV ah, 9    
+        ;     INT 21h  
                     
-            ; Go to a new line
-            MOV DL, 0Dh     ; ASCII value for carriage return
-            MOV AH, 02h     
-            INT 21h
+        ;     ; Go to a new line
+        ;     MOV DL, 0Dh     ; ASCII value for carriage return
+        ;     MOV AH, 02h     
+        ;     INT 21h
 
-            MOV DL, 0Ah     ; ASCII value for line feed
-            MOV AH, 02h     
-            INT 21h 
+        ;     MOV DL, 0Ah     ; ASCII value for line feed
+        ;     MOV AH, 02h     
+        ;     INT 21h 
             
-            PrintLoop:            
-                MOV CX, 0          
+        ;     PrintLoop:            
+        ;         MOV CX, 0          
             
-            LengthLoop:
-                CMP BYTE PTR [SI], '$'   ; Check if the current character is the string terminator
-                JE PrintString           ; If it is, jump to PrintString
+        ;     LengthLoop:
+        ;         CMP BYTE PTR [SI], '$'   ; Check if the current character is the string terminator
+        ;         JE PrintString           ; If it is, jump to PrintString
 
-                INC SI                   ; Move to the next character
-                INC CX                   ; Increment the length counter
-                JMP LengthLoop           ; Repeat until the string terminator is found
+        ;         INC SI                   ; Move to the next character
+        ;         INC CX                   ; Increment the length counter
+        ;         JMP LengthLoop           ; Repeat until the string terminator is found
 
-            PrintString:
-                MOV AH, 09h       ; Set AH to 09h for printing string
-                MOV DX, SI        ; Load the address of the current string into DX
-                SUB DX, CX        ; Subtract the length of the string from DX to get the starting address
-                INT 21h           
+        ;     PrintString:
+        ;         MOV AH, 09h       ; Set AH to 09h for printing string
+        ;         MOV DX, SI        ; Load the address of the current string into DX
+        ;         SUB DX, CX        ; Subtract the length of the string from DX to get the starting address
+        ;         INT 21h           
                     
-            ;insert separator 
-            lea dx, separator
-            MOV ah, 9    
-            int 21h
+        ;     ;insert separator 
+        ;     lea dx, separator
+        ;     MOV ah, 9    
+        ;     int 21h
             
-            ;the N array display            
-            MOV AL, [BX]        
-            ADD AL, 30h        
-            MOV DL, AL         
+        ;     ;the N array display            
+        ;     MOV AL, [BX]        
+        ;     ADD AL, 30h        
+        ;     MOV DL, AL         
 
-            MOV AH, 02h        
-            INT 21h
+        ;     MOV AH, 02h        
+        ;     INT 21h
                 
-            ;insert separator
-            lea dx, separator
-            MOV ah, 9    
-            int 21h
+        ;     ;insert separator
+        ;     lea dx, separator
+        ;     MOV ah, 9    
+        ;     int 21h
             
-            ;the P array display      
-            MOV AL, [DI]        
-            ADD AL, 30h        
-            MOV DL, AL        
+        ;     ;the P array display      
+        ;     MOV AL, [DI]        
+        ;     ADD AL, 30h        
+        ;     MOV DL, AL        
 
-            MOV AH, 02h        
-            INT 21h
+        ;     MOV AH, 02h        
+        ;     INT 21h
                             
                             
-            ; Go to a new line
-            MOV DL, 0Dh     ; ASCII value for carriage return
-            MOV AH, 02h     
-            INT 21h
+        ;     ; Go to a new line
+        ;     MOV DL, 0Dh     ; ASCII value for carriage return
+        ;     MOV AH, 02h     
+        ;     INT 21h
 
-            MOV DL, 0Ah     ; ASCII value for line feed
-            MOV AH, 02h    
-            INT 21h  
+        ;     MOV DL, 0Ah     ; ASCII value for line feed
+        ;     MOV AH, 02h    
+        ;     INT 21h  
             
-            ; Increment registers used to access the arrays.
-            INC DI
-            INC BX                          
-            INC SI            ; Move to the next string in the array
+        ;     ; Increment registers used to access the arrays.
+        ;     INC DI
+        ;     INC BX                          
+        ;     INC SI            ; Move to the next string in the array
 
-            CMP BYTE PTR [SI], '$'   ; Check if the next character is the array terminator
-            JNE PrintLoop            ; If it is not, jump back to PrintLoop
+        ;     CMP BYTE PTR [SI], '$'   ; Check if the next character is the array terminator
+        ;     JNE PrintLoop            ; If it is not, jump back to PrintLoop
 
-            RET
-        table_generator ENDP
+        ;     RET
+        ; table_generator ENDP
 
 ENDS CODE 
 END main
