@@ -187,6 +187,9 @@ CODE SEGMENT
 
                 ; A display message for when the user's guess is invalid.
                 invalid_user_guess:
+                    LEA DX, new_line
+                    CALL print_string
+                    
                     LEA DX, display_text_8
                     CALL print_string
 
