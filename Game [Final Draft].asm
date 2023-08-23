@@ -360,6 +360,8 @@ CODE SEGMENT
                     MOV is_valid, 0
                     LEA DX, display_text_8
                     CALL print_string
+                    RET
+
                 
                 numeric:
                 LOOP check_loop
