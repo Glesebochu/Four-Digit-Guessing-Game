@@ -373,8 +373,6 @@ CODE SEGMENT
                 JMP numeric
                 non_numeric:
                     MOV is_valid, 0
-                    LEA DX, display_text_8
-                    CALL print_string
                     RET
 
                 
