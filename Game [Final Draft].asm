@@ -87,6 +87,7 @@ DATA SEGMENT
 
         display_text_9 DB "CONGRATS! You have found the number.$"
         display_text_10 DB "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
+        display_text_11 DB "The number you failed to guess was: $"
 
 ENDS DATA
 
@@ -279,6 +280,29 @@ CODE SEGMENT
                 CALL print_string
                 LEA DX, display_text_10
                 CALL print_string
+
+                LEA DX, display_text_11
+                MOV AH,09h
+                INT 21H
+
+                 ; load into SI the random number(magic number)
+                LEA SI, random_number
+                ; Set the starting value for the counter register to 4.
+                ; This is the number of characters we want to display to the user.
+                MOV CX, 4
+                XOR DX,DX
+                output_randon_number_loop:
+                     ; Take the "character output instruction" to AH.
+                    MOV AH, 02h 
+                    MOV DL,[SI]
+
+                    ; Change whatever character was in AL to its ASCII value.
+                    ADD DL, '0'
+                    INT 21h
+    
+                    INC SI
+                    ; Each LOOP instruction decrements CX by 1.
+                    LOOP output_randon_number_loop
                 JMP end_program_label
 
             JMP game_loop
