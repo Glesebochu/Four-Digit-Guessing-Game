@@ -231,11 +231,6 @@ CODE SEGMENT
             MOV AH, 0
             add DI, AX
             MOV [DI], bl
-            
-            ;-------------------------------------------------------------------
-            ; Display a history of all the user's guesses and their scores.
-
-            ; CALL table_generator
 
             ;-------------------------------------------------------------------
             ; Check if the number has been found.
@@ -273,9 +268,8 @@ CODE SEGMENT
                 ;Increment the user guess count
                 INC guess_count
 
-                 ;-------------------------------------------------------------------
-            ; Display a history of all the user's guesses and their scores.
-
+                ;-------------------------------------------------------------------
+                ; Display a history of all the user's guesses and their scores.
                 CALL table_generator
 
                 
@@ -484,7 +478,7 @@ CODE SEGMENT
         ; ----------------------------------
         ; - Registers used: AX, BX, CX, DX - 
         ;-------------------------------------------------------------------
-      calculate_N PROC
+        calculate_N PROC
             ; Reset the BX register for proper usage.
             XOR BX, BX
             
@@ -607,19 +601,17 @@ CODE SEGMENT
                     INT 21H
 
                     INC SI
-            
 
-                LOOP print_current_guess_num
-               
+                    LOOP print_current_guess_num
 
                 POP CX
 
-                ;insert separator
+                ; Insert separator
                 lea dx, separator
                 MOV ah, 9    
                 int 21h
 
-                ;This prints the N score
+                ; This prints the N score
                 LEA SI, N_scores
                 MOV AX, BX
                 MOV AH, 0
@@ -629,13 +621,12 @@ CODE SEGMENT
                 ADD DX,'0'
                 INT 21h
 
-
-                 ;insert separator
+                ; Insert separator
                 lea dx, separator
                 MOV ah, 9    
                 int 21h
 
-                ;this prints the p socre
+                ; This prints the p socre
                 LEA SI, P_scores
                 MOV AX, BX
                 MOV AH, 0
