@@ -88,8 +88,6 @@ DATA SEGMENT
         display_text_9 DB "CONGRATS! You have found the number.$"
         display_text_10 DB "You've reached the maximum of 10 guesses. Try again, sletebelah(sh).$"
 
-        display_text_11 DB "You have an N score of:  $"
-        display_text_12 DB "You have a P score of:   $"
 ENDS DATA
 
 ;***********************************************************************
@@ -199,7 +197,6 @@ CODE SEGMENT
             ;-------------------------------------------------------------------
             ; Add the user's guess to "all_guesses."
 
-           ; Our own technique.
             XOR BX,BX
             MOV BX,4H
             LEA SI, user_guess
@@ -354,6 +351,8 @@ CODE SEGMENT
                     MOV is_valid, 0
                     LEA DX, display_text_8
                     CALL print_string
+                    RET
+
                 
                 numeric:
                 LOOP check_loop
