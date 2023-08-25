@@ -11,16 +11,6 @@ DATA SEGMENT
         ; The maximum number of guesses allowed.
         max_guess_count EQU 10
         
-        ; The maximum length of each guess.
-        max_guess_length EQU 5
-
-        ; The width of each column on the display table.
-        col_width EQU 7
-
-        ; For the pseudo random number generator
-        ARBITRARY_NUM_1 equ 0x6C07h
-        ARBITRARY_NUM_2 equ 0xAAA5h
-        
     ;===================================================================
     ; Arrays
     ;===================================================================
@@ -67,7 +57,6 @@ DATA SEGMENT
         separator DB '//$'   
         header DB 'Guess|N//P|$', 0;
 
-    
     ;===================================================================
     ; Text
     ;===================================================================
@@ -396,9 +385,9 @@ CODE SEGMENT
             LEA SI, to_be_validated
 
             ; Make a duplicate of to_be_validated.
-                LEA SI, to_be_validated
-                LEA DI, to_be_validated_duplicate
-                CALL make_duplicate
+            LEA SI, to_be_validated
+            LEA DI, to_be_validated_duplicate
+            CALL make_duplicate
 
 
             ; Count how many times an element from to_be_validated appears in to_be_validated_duplicate.
@@ -464,7 +453,7 @@ CODE SEGMENT
             LEA SI, random_number
             MOV CX, 4               
 
-            POPulate_random_number_by_digits_loop: 
+            populate_random_number_by_digits_loop: 
             
                 ; Save the counter variable on the stack.
                 PUSH CX
@@ -491,7 +480,7 @@ CODE SEGMENT
                 
                 ; Obtain the counter variable from the stack.
                 POP CX 
-                LOOP POPulate_random_number_by_digits_loop
+                LOOP populate_random_number_by_digits_loop
                 
             RET
 
